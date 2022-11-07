@@ -283,16 +283,16 @@ class Xecute:
             val1 = BTD(CpuObject.registers[signals[2] - 1])
         if signals[3] > 0:  # Not register x0
             val2 = BTD(CpuObject.registers[signals[3] - 1])
-        result = val1 == val2
-        if result:
+        res = val1 == val2
+        if res:
             CpuObject.program_counter = CpuObject.program_counter + signals[3]
             # AFTER THIS KILL ALL INSTRUCTIONS
-
 
 
 class Memory:
     def __init__(self):
         self.busy = False
+        self.mem = False
 
     def loadWord(self, signals, data , CpuObject):
         # lw rd offset(rs1)  val_rd = mem[offset + rs1]
@@ -304,11 +304,9 @@ class Memory:
         temp = DTB(temp)  # this is binary address in memory location
         valLoaded = data[temp]  # this is value in binary to be loaded in register
         CpuObject.registers[signals[1] - 1] = valLoaded
+        self.mem = True     # Indication for the next stage
 
-        # addr = '' # memory (binary)
-        # register =' ' # register number
-
-    def storeWord(signals, data, CpuObject):
+    def storeWord(self, signals, data, CpuObject):
         # signals = [type, rs1 , rs2 , imm] :  M[rs1 + imm] = val(rs2)
         valLoaded = 0  # contains the value of reg : rs2
         if signals[2] > 0:  # Not register x0
@@ -320,11 +318,20 @@ class Memory:
         temp3 = temp1 + temp2   # Contains the address in decimal system
         temp3 = DTB(temp3)      # Converting the addr to binary for using dictionary
         data[temp3] = DTB(valLoaded) # Updating the memory dictionary
+        self.mem = True     # Indication for the next stage
 
 
 class WriteBack:
     def __init__(self):
-        self.busy = False
+        self.busy = False # used for stalling logic
+
+    def writeRegister(self, signals, result, CpuObject):
+        # signals = [, rd , ...]
+        rd = signals[1]
+        if rd == 0 :
+            return
+        CpuObject.registers[rd-1] = DTB(result)
+        return
 
 
 def main():
@@ -356,3 +363,21 @@ def main():
 
 if __name__ == '__main__':
     main()
+
+'''
+1) WriteBack :                 'DONE'
+2) Structural Hazard
+3) Data Hazard
+4) Log File 
+5) Main() : 
+    -> instruction by read using instructionMem 
+        -> clock update 
+        -> all 5 stages have to be looked up on
+            -> stalling at each stage
+            -> if not : corresponding method to be invoked
+            -> at last , stalling logic complete 
+        ->  .... (aur bhi cheezein bhuul gaye ho toh Pathik Saheb)
+        -> Handle BEQ case : when branched (in main())
+6) LoadNOC and SendNOC
+7) Test Binary
+'''
