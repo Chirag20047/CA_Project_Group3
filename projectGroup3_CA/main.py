@@ -2,7 +2,7 @@ import random
 import random as rand
 
 
-def BTD(binary):         # Converts a given binary string (32 bits) to decimal integer (base 10)
+def BTD(binary):  # Converts a given binary string (32 bits) to decimal integer (base 10)
     binary = binary[::-1]
     num = 0
     for i in range(31):
@@ -10,9 +10,11 @@ def BTD(binary):         # Converts a given binary string (32 bits) to decimal i
             num = num + pow(2, i)
     binary = binary[::-1]
     if binary[0] == '1':
-        num = num + (pow(2, 31)*-1)
+        num = num + (pow(2, 31) * -1)
     return num
 
+def reverse(x):
+    return x[::-1]
 
 def DTB(num):  # Converts a given integer(base 10) to binary string of 32
     string = ''
@@ -92,11 +94,11 @@ class DataMemory:
 
 class Fetch:
     def __init__(self):
-        self.busy = False       # flag busy : used for checking whether a structural hazard exists or not
+        self.busy = False  # flag busy : used for checking whether a structural hazard exists or not
         self.instruction = ""
         pass
 
-    def SetInstruction(self, instruction):  # Setting the instruction
+    def FetchInstruction(self, instruction):  # Setting the instruction
         self.instruction = instruction
         self.busy = True
 
@@ -108,6 +110,89 @@ class Decode:
     def __init__(self):
         self.busy = False
         pass
+
+    def decode(binary):
+        imm = 0
+        rs1 = 0
+        rs2 = 0
+        rd = 0
+        type = ""
+        result = []
+        binary = reverse(binary)
+        if binary[0:7] == "1100110" and binary[12:15] == "000" and binary[25:] == "0000000":
+            type = "add"
+            rd = BTD(reverse(binary[7:12]))
+            rs1 = BTD(reverse(binary[15:20]))
+            rs2 = BTD(reverse(binary[20:25]))
+            result = [type, rd, rs1, rs2]
+
+        elif binary[0:7] == "1100110" and binary[12:15] == "000" and binary[25:] == "0000010":
+            type = "sub"
+            rd = BTD(reverse(binary[7:12]))
+            rs1 = BTD(reverse(binary[15:20]))
+            rs2 = BTD(reverse(binary[20:25]))
+            result = [type, rd, rs1, rs2]
+
+        elif binary[0:7] == "1100110" and binary[12:15] == "111" and binary[25:] == "0000000":
+            type = "and"
+            rd = BTD(reverse(binary[7:12]))
+            rs1 = BTD(reverse(binary[15:20]))
+            rs2 = BTD(reverse(binary[20:25]))
+            result = [type, rd, rs1, rs2]
+
+        elif binary[0:7] == "1100110" and binary[12:15] == "011" and binary[25:] == "0000000":
+            type = "or"
+            rd = BTD(reverse(binary[7:12]))
+            rs1 = BTD(reverse(binary[15:20]))
+            rs2 = BTD(reverse(binary[20:25]))
+            result = [type, rd, rs1, rs2]
+
+        elif binary[0:7] == "1100110" and binary[12:15] == "100" and binary[25:] == "0000000":
+            type = "sll"
+            rd = BTD(reverse(binary[7:12]))
+            rs1 = BTD(reverse(binary[15:20]))
+            rs2 = BTD(reverse(binary[20:25]))
+            result = [type, rd, rs1, rs2]
+
+        elif binary[0:7] == "1100110" and binary[12:15] == "101" and binary[25:] == "0000010":
+            type = "sra"
+            rd = BTD(reverse(binary[7:12]))
+            rs1 = BTD(reverse(binary[15:20]))
+            rs2 = BTD(reverse(binary[20:25]))
+            result = [type, rd, rs1, rs2]
+
+        elif binary[0:7] == "1100100" and binary[12:15] == "000":
+            type = "addi"
+            rd = BTD(reverse(binary[7:12]))
+            rs1 = BTD(reverse(binary[15:20]))
+            imm = BTD(reverse(binary[20:]))
+            result = [type, rd, rs1, imm]
+
+        elif binary[0:7] == "1100000" and binary[12:15] == "010":
+            type = "lw"
+            rd = BTD(reverse(binary[7:12]))
+            rs1 = BTD(reverse(binary[15:20]))
+            imm = BTD(reverse(binary[20:]))
+            result = [type, rd, rs1, imm]
+
+        elif binary[0:7] == "1100011" and binary[12:15] == "000":
+            type = "beq"
+            imm1 = reverse(binary[7:12])
+            rs1 = BTD(reverse(binary[15:20]))
+            rs2 = BTD(reverse(binary[20:25]))
+            imm2 = reverse(binary[25:])
+            imm = BTD(imm2 + imm1)
+            result = [type, rs1, rs2, imm]
+
+        elif binary[0:7] == "1100010" and binary[12:15] == "010":
+            type = "sw"
+            imm1 = reverse(binary[7:12])
+            rs1 = BTD(reverse(binary[15:20]))
+            rs2 = BTD(reverse(binary[20:25]))
+            imm2 = reverse(binary[25:])
+            imm = BTD(imm2 + imm1)
+            result = [type, rs1, rs2, imm]
+        return result
 
 
 class Xecute:
@@ -128,7 +213,7 @@ class WriteBack:
 def main():
     #  Opening the input and log Files
     binary = open('testBinary.txt', 'r')
-    output = open('logFile.txt', 'w')
+    # output = open('logFile.txt', 'w')
 
     # Instantiating the objects of the System
     cpuObject = CPU()
@@ -140,15 +225,15 @@ def main():
     sysMem = Memory()
     write_back = WriteBack()
 
-    # Loading the program in the instruction memory
+    # Loading the program in the instruction memory & data memory
     instMem.loadProgram(binary)
-    # print(instMem.instructions)
+    dataMem.initializeMemory()
 
     # Main Logic of the code
 
-
-    output.close()
     binary.close()
+    # print(dataMem.memory)
+    # output.close()
     return
 
 
