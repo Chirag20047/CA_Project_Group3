@@ -13,8 +13,10 @@ def BTD(binary):  # Converts a given binary string (32 bits) to decimal integer 
         num = num + (pow(2, 31) * -1)
     return num
 
+
 def reverse(x):
     return x[::-1]
+
 
 def DTB(num):  # Converts a given integer(base 10) to binary string of 32
     string = ''
@@ -94,16 +96,11 @@ class DataMemory:
 
 class Fetch:
     def __init__(self):
-        self.busy = False  # flag busy : used for checking whether a structural hazard exists or not
         self.instruction = ""
         pass
 
     def FetchInstruction(self, instruction):  # Setting the instruction
         self.instruction = instruction
-        self.busy = True
-
-    def CheckBusy(self):
-        return self.busy
 
 
 class Decode:
@@ -111,7 +108,8 @@ class Decode:
         self.busy = False
         pass
 
-    def decode(binary):
+    def DecodeInstruction(self, binary):    # decoding the binary instruction fetched from the
+        self.busy = True
         imm = 0
         rs1 = 0
         rs2 = 0
@@ -192,6 +190,7 @@ class Decode:
             imm2 = reverse(binary[25:])
             imm = BTD(imm2 + imm1)
             result = [type, rs1, rs2, imm]
+        # Remember to unset the flag busy on completing the work , busyFlag : regarding the structural hazard stalling
         return result
 
 
@@ -199,11 +198,50 @@ class Xecute:
     def __init__(self):
         self.busy = False
 
+    def Add(self):
+        pass
+
+    def Sub(self):
+        pass
+
+    def AND(self):
+        pass
+
+    def OR(self):
+        pass
+
+    def AddImm(self):
+        pass
+
+    def SLL(self):
+        pass
+
+    def SRA(self):
+        pass
+
+    def LoadWord(self):
+        pass
+
+    def StoreWord(self):
+        pass
+
+    def BranchIfEqual(self):
+        pass
+
 
 class Memory:
     def __init__(self):
         self.busy = False
 
+    def loadWord(self, signals, data):
+        addr = '' # memory (binary)
+        register =' ' # register number
+        pass
+
+    def storeWord(self, signals, data):
+        addr = ''  # memory (binary)
+        valueTobeStores = -1
+        pass
 
 class WriteBack:
     def __init__(self):
