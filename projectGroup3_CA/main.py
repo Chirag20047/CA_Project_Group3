@@ -68,7 +68,7 @@ class CPU:
         self.program_counter = initialValue  # Initial State
         self.r0 = (initialValue,)  # Immutable Special Register : tuple has been used
         self.registers = list()
-        for i in range(32):
+        for i in range(31):
             self.registers.append(initialValue)
 
 
@@ -106,16 +106,16 @@ class Fetch:
 class Decode:
     def __init__(self):
         self.busy = False
+        self.result = list()
         pass
 
-    def DecodeInstruction(self, binary):    # decoding the binary instruction fetched from the
+    def DecodeInstruction(self, binary):  # decoding the binary instruction fetched from the
         self.busy = True
         imm = 0
         rs1 = 0
         rs2 = 0
         rd = 0
         type = ""
-        result = []
         binary = reverse(binary)
         if binary[0:7] == "1100110" and binary[12:15] == "000" and binary[25:] == "0000000":
             type = "add"
@@ -196,37 +196,98 @@ class Decode:
 
 class Xecute:
     def __init__(self):
-        self.busy = False
+        self.busy = False  # Used for checking stalling logics
+        self.result = None  # Until no value is being assigned
 
-    def Add(self):
-        pass
+    def Add(self, signals, CpuObject):
+        # signals = [type,rd,rs1,rs2] :  we have to add rs1 and rs2 in this function
+        val1 = 0
+        val2 = 0
+        if signals[2] > 0:  # Not register x0
+            val1 = BTD(CpuObject.registers[signals[2] - 1])
+        if signals[3] > 0:  # Not register x0
+            val2 = BTD(CpuObject.registers[signals[3] - 1])
+        self.result = val1 + val2
 
-    def Sub(self):
-        pass
+    def Sub(self, signals, CpuObject):
+        # signals = [type,rd,rs1,rs2] :  we have to add rs1 and rs2 in this function
+        val1 = 0
+        val2 = 0
+        if signals[2] > 0:  # Not register x0
+            val1 = BTD(CpuObject.registers[signals[2] - 1])
+        if signals[3] > 0:  # Not register x0
+            val2 = BTD(CpuObject.registers[signals[3] - 1])
+        self.result = val1 - val2
 
-    def AND(self):
-        pass
+    def AND(self, signals, CpuObject):
+        # signals = [type,rd,rs1,rs2] :  we have to add rs1 and rs2 in this function
+        val1 = 0
+        val2 = 0
+        if signals[2] > 0:  # Not register x0
+            val1 = BTD(CpuObject.registers[signals[2] - 1])
+        if signals[3] > 0:  # Not register x0
+            val2 = BTD(CpuObject.registers[signals[3] - 1])
+        self.result = val1 and val2
 
-    def OR(self):
-        pass
+    def OR(self, signals, CpuObject):
+        # signals = [type,rd,rs1,rs2] :  we have to add rs1 and rs2 in this function
+        val1 = 0
+        val2 = 0
+        if signals[2] > 0:  # Not register x0
+            val1 = BTD(CpuObject.registers[signals[2] - 1])
+        if signals[3] > 0:  # Not register x0
+            val2 = BTD(CpuObject.registers[signals[3] - 1])
+        self.result = val1 or val2
 
-    def AddImm(self):
-        pass
+    def AddImm(self, signals, CpuObject):
+        # signals = [type,rd,rs1,imm] :  we have to add rs1 and rs2 in this function
+        val1 = 0
+        if signals[2] > 0:  # Not register x0
+            val1 = BTD(CpuObject.registers[signals[2] - 1])
+        imm = signals[3]
+        self.result = val1 + imm
 
-    def SLL(self):
-        pass
+    def SLL(self, signals, CpuObject):
+        # signals = [type, rd, rs1, rs2]
+        val1 = 0
+        val2 = 0
+        if signals[2] > 0:  # Not register x0
+            val1 = BTD(CpuObject.registers[signals[2] - 1])
+        if signals[3] > 0:  # Not register x0
+            val2 = BTD(CpuObject.registers[signals[3] - 1])
+        self.result = val1 << val2
 
-    def SRA(self):
-        pass
+    def SRA(self, signals, CpuObject):
+        # signals = [type, rd, rs1, rs2]
+        val1 = 0
+        val2 = 0
+        if signals[2] > 0:  # Not register x0
+            val1 = BTD(CpuObject.registers[signals[2] - 1])
+        if signals[3] > 0:  # Not register x0
+            val2 = BTD(CpuObject.registers[signals[3] - 1])
+        self.result = val1 >> val2
 
     def LoadWord(self):
+        # Nothing has to be done here
         pass
 
     def StoreWord(self):
+        # Nothing has to be done here
         pass
 
-    def BranchIfEqual(self):
-        pass
+    def BranchIfEqual(self, signals, CpuObject):
+        # signals = [type, rs1, rs2, imm]
+        val1 = 0
+        val2 = 0
+        if signals[2] > 0:  # Not register x0
+            val1 = BTD(CpuObject.registers[signals[2] - 1])
+        if signals[3] > 0:  # Not register x0
+            val2 = BTD(CpuObject.registers[signals[3] - 1])
+        result = val1 == val2
+        if result:
+            CpuObject.program_counter = CpuObject.program_counter + signals[3]
+            # AFTER THIS KILL ALL INSTRUCTIONS
+
 
 
 class Memory:
@@ -234,14 +295,15 @@ class Memory:
         self.busy = False
 
     def loadWord(self, signals, data):
-        addr = '' # memory (binary)
-        register =' ' # register number
+        addr = ''  # memory (binary)
+        register = ' '  # register number
         pass
 
     def storeWord(self, signals, data):
         addr = ''  # memory (binary)
         valueTobeStores = -1
         pass
+
 
 class WriteBack:
     def __init__(self):
@@ -270,7 +332,7 @@ def main():
     # Main Logic of the code
 
     binary.close()
-    # print(dataMem.memory)
+    print(dataMem.memory)
     # output.close()
     return
 
