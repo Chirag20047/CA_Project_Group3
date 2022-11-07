@@ -2,13 +2,24 @@ import random
 import random as rand
 
 
-def BTD(s):
-    a = int(s, 2)
-    return a
+def BTD(binary):         # Converts a given binary string (32 bits) to decimal integer (base 10)
+    binary = binary[::-1]
+    num = 0
+    for i in range(31):
+        if binary[i] == '1':
+            num = num + pow(2, i)
+    binary = binary[::-1]
+    if binary[0] == '1':
+        num = num + (pow(2, 31)*-1)
+    return num
 
 
-def DTB(num):
+def DTB(num):  # Converts a given integer(base 10) to binary string of 32
     string = ''
+    flag = False  # false --> positive number
+    if num < 0:
+        flag = True  # Negative Number
+    num = abs(num)
     while num != 0:
         remainder = num % 2
         string = string + str(remainder)
@@ -16,7 +27,25 @@ def DTB(num):
     string = string[::-1]
     length = len(string)
     added = "0" * (32 - length)
-    return added + string
+    number = added + string
+    #    Taking 1's complement of the given binary string
+    if flag:
+        for i in range(32):
+            if number[i] == '1':
+                number = number[:i] + '0' + number[i + 1:]
+            else:
+                number = number[:i] + '1' + number[i + 1:]
+        # Adding 1 to the given number
+        carry = 0
+        # number = number[::-1]
+        for i in range(31, -1, -1):
+            if number[i] == '1':
+                number = number[:i] + '0' + number[i + 1:]
+                carry = 1
+            else:
+                number = number[:i] + '1' + number[i + 1:]
+                break
+    return number
 
 
 class Clock:
@@ -63,27 +92,37 @@ class DataMemory:
 
 class Fetch:
     def __init__(self):
+        self.busy = False       # flag busy : used for checking whether a structural hazard exists or not
+        self.instruction = ""
         pass
+
+    def SetInstruction(self, instruction):  # Setting the instruction
+        self.instruction = instruction
+        self.busy = True
+
+    def CheckBusy(self):
+        return self.busy
 
 
 class Decode:
     def __init__(self):
+        self.busy = False
         pass
 
 
 class Xecute:
     def __init__(self):
-        pass
+        self.busy = False
 
 
 class Memory:
     def __init__(self):
-        pass
+        self.busy = False
 
 
 class WriteBack:
     def __init__(self):
-        pass
+        self.busy = False
 
 
 def main():
@@ -103,25 +142,11 @@ def main():
 
     # Loading the program in the instruction memory
     instMem.loadProgram(binary)
-    print(instMem.instructions)
-    # while True:
-    # all 5 stages manipulated
-    # Fetch: instruction from instructionMemory obj
-    # Decode :  extract useful group of bits from the fetched instruction
-    # Xecute : execute and store the arithmetic operations in a temp variable
-    # Memory : load or store instruction manipulation
-    # WriteBack : update register file
-    # PTR :
-    # 1) Each stage object will converse with prev stage object .
-    # 2) Each stage object will converse with next stage as well : to avoid structural hazard
-    #     : use of flag (busy)
-    # 3) Data Hazard : RAW WAR WAW [TO BE DECIDED !!!]
-    #     : current stage destination register should not clash with prev
-    # Display the register file
-    # cpuObject.clock = cpuObject.clock + 1  # Updating the Clock Cycle Number
-    # pass
+    # print(instMem.instructions)
 
-    # Closing the opened files
+    # Main Logic of the code
+
+
     output.close()
     binary.close()
     return
