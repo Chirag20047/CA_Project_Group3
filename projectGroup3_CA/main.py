@@ -106,6 +106,7 @@ class Fetch:
 class Decode:
     def __init__(self):
         self.busy = False
+        self.type = None
         self.result = list()
         pass
 
@@ -115,66 +116,65 @@ class Decode:
         rs1 = 0
         rs2 = 0
         rd = 0
-        type = ""
         binary = reverse(binary)
         if binary[0:7] == "1100110" and binary[12:15] == "000" and binary[25:] == "0000000":
-            type = "add"
+            self.type = "add"
             rd = BTD(reverse(binary[7:12]))
             rs1 = BTD(reverse(binary[15:20]))
             rs2 = BTD(reverse(binary[20:25]))
             result = [type, rd, rs1, rs2]
 
         elif binary[0:7] == "1100110" and binary[12:15] == "000" and binary[25:] == "0000010":
-            type = "sub"
+            self.type = "sub"
             rd = BTD(reverse(binary[7:12]))
             rs1 = BTD(reverse(binary[15:20]))
             rs2 = BTD(reverse(binary[20:25]))
             result = [type, rd, rs1, rs2]
 
         elif binary[0:7] == "1100110" and binary[12:15] == "111" and binary[25:] == "0000000":
-            type = "and"
+            self.type = "and"
             rd = BTD(reverse(binary[7:12]))
             rs1 = BTD(reverse(binary[15:20]))
             rs2 = BTD(reverse(binary[20:25]))
             result = [type, rd, rs1, rs2]
 
         elif binary[0:7] == "1100110" and binary[12:15] == "011" and binary[25:] == "0000000":
-            type = "or"
+            self.type = "or"
             rd = BTD(reverse(binary[7:12]))
             rs1 = BTD(reverse(binary[15:20]))
             rs2 = BTD(reverse(binary[20:25]))
             result = [type, rd, rs1, rs2]
 
         elif binary[0:7] == "1100110" and binary[12:15] == "100" and binary[25:] == "0000000":
-            type = "sll"
+            self.type = "sll"
             rd = BTD(reverse(binary[7:12]))
             rs1 = BTD(reverse(binary[15:20]))
             rs2 = BTD(reverse(binary[20:25]))
             result = [type, rd, rs1, rs2]
 
         elif binary[0:7] == "1100110" and binary[12:15] == "101" and binary[25:] == "0000010":
-            type = "sra"
+            self.type = "sra"
             rd = BTD(reverse(binary[7:12]))
             rs1 = BTD(reverse(binary[15:20]))
             rs2 = BTD(reverse(binary[20:25]))
             result = [type, rd, rs1, rs2]
 
         elif binary[0:7] == "1100100" and binary[12:15] == "000":
-            type = "addi"
+            self.type = "addi"
             rd = BTD(reverse(binary[7:12]))
             rs1 = BTD(reverse(binary[15:20]))
             imm = BTD(reverse(binary[20:]))
             result = [type, rd, rs1, imm]
 
         elif binary[0:7] == "1100000" and binary[12:15] == "010":
-            type = "lw"
+            self.type = "lw"
             rd = BTD(reverse(binary[7:12]))
             rs1 = BTD(reverse(binary[15:20]))
             imm = BTD(reverse(binary[20:]))
             result = [type, rd, rs1, imm]
 
         elif binary[0:7] == "1100011" and binary[12:15] == "000":
-            type = "beq"
+            self.type = "beq"
             imm1 = reverse(binary[7:12])
             rs1 = BTD(reverse(binary[15:20]))
             rs2 = BTD(reverse(binary[20:25]))
@@ -183,7 +183,7 @@ class Decode:
             result = [type, rs1, rs2, imm]
 
         elif binary[0:7] == "1100010" and binary[12:15] == "010":
-            type = "sw"
+            self.type = "sw"
             imm1 = reverse(binary[7:12])
             rs1 = BTD(reverse(binary[15:20]))
             rs2 = BTD(reverse(binary[20:25]))
@@ -294,15 +294,32 @@ class Memory:
     def __init__(self):
         self.busy = False
 
-    def loadWord(self, signals, data):
-        addr = ''  # memory (binary)
-        register = ' '  # register number
-        pass
+    def loadWord(self, signals, data , CpuObject):
+        # lw rd offset(rs1)  val_rd = mem[offset + rs1]
+        val = 0 # contains the value of reg : rs1
+        if signals[2] > 0:  # Not register x0
+            val = BTD(CpuObject.registers[signals[2] - 1])
+        temp = signals[3]  # offset value (immediate)
+        temp = temp + val
+        temp = DTB(temp)  # this is binary address in memory location
+        valLoaded = data[temp]  # this is value in binary to be loaded in register
+        CpuObject.registers[signals[1] - 1] = valLoaded
 
-    def storeWord(self, signals, data):
-        addr = ''  # memory (binary)
-        valueTobeStores = -1
-        pass
+        # addr = '' # memory (binary)
+        # register =' ' # register number
+
+    def storeWord(signals, data, CpuObject):
+        # signals = [type, rs1 , rs2 , imm] :  M[rs1 + imm] = val(rs2)
+        valLoaded = 0  # contains the value of reg : rs2
+        if signals[2] > 0:  # Not register x0
+            valLoaded = BTD(CpuObject.registers[signals[2] - 1])
+        temp1 = 0  # contains the value of reg : rs1
+        if signals[1] > 0:  # Not register x0
+            temp1 = BTD(CpuObject.registers[signals[2] - 1])
+        temp2 = signals[3]  # imm
+        temp3 = temp1 + temp2   # Contains the address in decimal system
+        temp3 = DTB(temp3)      # Converting the addr to binary for using dictionary
+        data[temp3] = DTB(valLoaded) # Updating the memory dictionary
 
 
 class WriteBack:
