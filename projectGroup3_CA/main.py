@@ -2,8 +2,6 @@ import random
 import random as rand
 
 
-
-
 def BTD(binary):  # Converts a given binary string (32 bits) to decimal integer (base 10)
     # 1101
     ch = binary[0]
@@ -69,6 +67,7 @@ class Clock:
     def updateCounter(self, val):
         self.counter = self.counter + 1
 
+
 class CPU:
     def __init__(self):
         self.clock = Clock(0)
@@ -108,7 +107,7 @@ class Fetch:
         # self.busy = False
         pass
 
-    def FetchInstruction(self, instruction ):  # Setting the instruction
+    def FetchInstruction(self, instruction):  # Setting the instruction
         # self.busy = True  # Fetch stage is busy till decode stage gets free
         self.instruction = instruction
 
@@ -395,10 +394,11 @@ def main():
     # Main Logic of the code
     # while True:
     totalInstructions = 0
-    for i in range(10):
+    for i in range(14):
         # check = False  # To check whether current clock cycle is needed or not for the program
         # Step 1 :Write Back Stage
         # print(decode.result)
+        # print(i, decode.result)
         if len(decode.result) != 0 and len(memStage.decodeSignals) != 0:
             # print(i, memStage.mem)
             if not memStage.mem:  # Given instruction not a memory instruction
@@ -410,10 +410,10 @@ def main():
                 memStage.mem = False
 
         # Step 2 : Memory Stage :
-        if len(execute.decodeSignals) != 0 :
+        if len(execute.decodeSignals) != 0:
             if execute.decodeSignals[0] not in ["sw", 'lw']:
                 # Not a memory operation
-                memStage.storeSignals(execute.decodeSignals , execute.result)
+                memStage.storeSignals(execute.decodeSignals, execute.result)
             else:
                 # Given is a memory operation
                 if execute.decodeSignals[0] == "lw":
@@ -422,31 +422,33 @@ def main():
                     memStage.storeWord(execute.decodeSignals, dataMem.memory, cpuObject)
 
         # Step 3 : Execute Stage
-        if len(decode.result) !=0:
-            if memStage.mem is not None and len(memStage.decodeSignals)!=0:
+        if len(decode.result) != 0:
+            if memStage.mem == True and len(memStage.decodeSignals) != 0:
+                print(i, decode.result)
+                memStage.mem = False
                 lis = decode.result  # This lis contains all the values of the registers involved in memoryOp
-                if lis[0] !='sw' and lis[0]!='beq': # rd --> value has to updated --> check RAW
+                if lis[0] != 'sw' and lis[0] != 'beq':  # rd --> value has to updated --> check RAW
                     registerWrite = lis[1]  # destination register
                     # Above register should not be there in the memstage signals
-                    if lis[0]!= "lw" and lis[0] != "addi":
-                        if registerWrite in memStage.decodeSignals :
+                    if lis[0] != "lw" and lis[0] != "addi":
+                        if registerWrite in memStage.decodeSignals:
                             # print("1\n")
                             PrintPartialCpuState(cpuObject)
                             continue
-                    elif lis[0] == "lw" or lis[0]=="addi":
-                        if registerWrite == memStage.decodeSignals[1] or registerWrite == memStage.decodeSignals[2] :
+                    elif lis[0] == "lw" or lis[0] == "addi":
+                        if registerWrite == memStage.decodeSignals[1] or registerWrite == memStage.decodeSignals[2]:
                             # print("2\n")
                             PrintPartialCpuState(cpuObject)
                             continue
 
-                elif memStage.decodeSignals[0] == "lw": # rd --> RAW and WAW
+                elif memStage.decodeSignals[0] == "lw":  # rd --> RAW and WAW
                     registerToBeLoaded = memStage.decodeSignals[1]
                     # Then above value should not be loaded
                     if registerToBeLoaded == lis[1] or registerToBeLoaded == lis[2]:
                         PrintPartialCpuState(cpuObject)
                         continue
-
             temp = decode.result[0]
+            # print(i, temp)
             if temp == "add":
                 execute.Add(decode.result, cpuObject)
             elif temp == "addi":
@@ -466,8 +468,16 @@ def main():
             elif temp == "sra":
                 execute.SRA(decode.result, cpuObject)
             elif temp == "beq":
+                # print("hi")
                 execute.BranchIfEqual(decode.result, cpuObject)
-
+                if execute.result:
+                    cpuObject.program_counter.updateCounter(decode.result[3] - 2)
+                    fetch.instruction = ""
+                    totalInstructions = totalInstructions - 2 + decode.result[3]
+                    decode.result = []
+                    execute.decodeSignals = []
+                    memStage.decodeSignals = []
+                    continue  # Move to a new cycle
 
         # Step 4 : Decode :
         if len(fetch.instruction) != 0:
@@ -475,7 +485,7 @@ def main():
 
         # Step 5 :
         # if not fetch.busy:
-            # Fetch Stage is free to work further
+        # Fetch Stage is free to work further
         if totalInstructions < len(instMem.instructions):
             totalInstructions = totalInstructions + 1
             fetch.FetchInstruction(instMem.instructions[BTD(cpuObject.program_counter)])
@@ -488,7 +498,7 @@ def main():
 
     # Closing the text files opened
     binary.close()
-    print("End State of Memory\n",dataMem.memory)
+    # print("End State of Memory\n", dataMem.memory)
     # output.close()
     return
 
