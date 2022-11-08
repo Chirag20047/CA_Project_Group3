@@ -64,6 +64,8 @@ class Clock:
     def getCounter(self):
         return self.counter
 
+    def updateCounter(self, val):
+        self.counter = self.counter + 1
 
 class CPU:
     def __init__(self):
@@ -100,7 +102,7 @@ class DataMemory:
 
 class Fetch:
     def __init__(self):
-        self.instruction = None
+        self.instruction = ""
         self.busy = False
         pass
 
@@ -204,7 +206,7 @@ class Xecute:
     def __init__(self):
         self.busy = False  # Used for checking stalling logics
         self.result = None  # value of register if needs to be udpated
-        self.decodeSignals = None  # storing decode signals for passing it to further stages
+        self.decodeSignals = list()  # storing decode signals for passing it to further stages
 
     def Add(self, signals, CpuObject):
         # signals = [type,rd,rs1,rs2] :  we have to add rs1 and rs2 in this function
@@ -310,7 +312,7 @@ class Memory:
     def __init__(self):
         self.busy = False
         self.mem = False  # False --> no memory operation was there --> write back has to do its work
-        self.decodeSignals = ['None','None','None','None']
+        self.decodeSignals = list()
 
     def storeSignals(self, signals):
         self.decodeSignals = signals
@@ -357,9 +359,10 @@ class WriteBack:
 
 
 def PrintPartialCpuState(cpuObject):
-    print('State of Register File at Clock Cycle =', cpuObject.clock, 'is as follow : ')
+    print('State of Register File at Clock Cycle =', cpuObject.clock.getCounter(), ': ')
     print(cpuObject.registers)
-    cpuObject.clock += 1
+    # cpuObject.clock = cpuObject.clock +  1
+    cpuObject.clock.updateCounter(1)
 
 
 def main():
@@ -382,15 +385,16 @@ def main():
     dataMem.initializeMemory()
 
     # Main Logic of the code
-    while True:
+    # while True:
+    for i in range(22):
         # check = False  # To check whether current clock cycle is needed or not for the program
         # Step 1 :Write Back Stage
-        if not write_back.busy and decode.result is not None:
+        if not write_back.busy and len(decode.result) != 0 :
             if not memStage.mem:  # Given instruction not a memory instruction
                 write_back.writeRegister(memStage.decodeSignals, execute.result, cpuObject)
 
         # Step 2 : Memory Stage :
-        if not memStage.busy and execute.decodeSignals is not None:
+        if not memStage.busy and len(execute.decodeSignals)!=0 :
             if execute.result is not None:
                 # Not a memory operation
                 memStage.storeSignals(execute.decodeSignals)
@@ -402,7 +406,7 @@ def main():
                     memStage.storeWord(execute.decodeSignals, dataMem.memory, cpuObject)
 
         # Step 3 : Execute Stage
-        if not execute.busy and memStage.decodeSignals is not None and decode.result is not None:
+        if not execute.busy and len(memStage.decodeSignals) !=0 and len(decode.result) !=0:
             if memStage.mem is not None:
                 lis = decode.decodeSignals  # This lis contains all the values of the registers involved in memoryOp
                 if lis[0] !='sw' and lis[0]!='beq': # rd --> value has to updated --> check RAW
@@ -447,13 +451,13 @@ def main():
                 execute.BranchIfEqual(decode.result, cpuObject)
 
         # Step 4 : Decode :
-        if not decode.busy and fetch.instruction is not None:
+        if not decode.busy and len(fetch.instruction) != 0:
             decode.DecodeInstruction(fetch.instruction)
 
         # Step 5 :
         if not fetch.busy:
             # Fetch Stage is free to work further
-            fetch.FetchInstruction(instMem.instructions[cpuObject.program_counter])
+            fetch.FetchInstruction(instMem.instructions[BTD(cpuObject.program_counter)])
             cpuObject.program_counter = DTB(BTD(cpuObject.program_counter) + 1)  # updating the program counter by 1
 
         # if not check:  # Checking whether some work was done or not
