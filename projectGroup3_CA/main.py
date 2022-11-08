@@ -394,13 +394,14 @@ def main():
     # Main Logic of the code
     # while True:
     totalInstructions = 0
-    for i in range(16):
+    for i in range(15):
         # check = False  # To check whether current clock cycle is needed or not for the program
         # Step 1 :Write Back Stage
         # print(decode.result)
         # print(i, decode.result)
         if len(decode.result) != 0 and len(memStage.decodeSignals) != 0:
             # print(i, memStage.decodeSignals)
+            # print(memStage.decodeSignals)
             if memStage.decodeSignals[0]!='sw' and memStage.decodeSignals[0]!='beq':  # Given instruction not a memory instruction
                 # print(memStage.decodeSignals, .result , i)
                 write_back.writeRegister(memStage.decodeSignals, memStage.result, cpuObject)
@@ -421,7 +422,7 @@ def main():
             execute.decodeSignals = []
 
         # Step 3 : Execute Stage
-        # print(i-1, decode.result)
+        # print(i, decode.result)
         if len(decode.result) != 0 :
             # print(i, decode.result)
             if len(memStage.decodeSignals)!=0 and memStage.decodeSignals[0] == 'lw':
@@ -481,13 +482,16 @@ def main():
                 execute.BranchIfEqual(decode.result, cpuObject)
                 # print(execute.result)
                 if execute.result:
-                    effective_offset = decode.result[3] - 1
+                    effective_offset = decode.result[3] - 2
+                    # print("Current Program Counter",BTD(cpuObject.program_counter))
                     cpuObject.program_counter= DTB(BTD(cpuObject.program_counter) + effective_offset)
+                    # print("Updated Program Counter",BTD(cpuObject.program_counter))
                     fetch.instruction = ""
-                    totalInstructions = cpuObject.program_counter
+                    totalInstructions = BTD(cpuObject.program_counter)
                     decode.result = []
                     execute.decodeSignals = []
                     memStage.decodeSignals = []
+                    PrintPartialCpuState(cpuObject)
                     continue  # Move to a new cycle
 
         # Step 4 : Decode :
@@ -497,8 +501,10 @@ def main():
         # Step 5 :
         # if not fetch.busy:
         # Fetch Stage is free to work further
+        # print(i, totalInstructions, )
         if totalInstructions < len(instMem.instructions):
             totalInstructions = totalInstructions + 1
+            # print(i, BTD(cpuObject.program_counter))
             fetch.FetchInstruction(instMem.instructions[BTD(cpuObject.program_counter)])
             cpuObject.program_counter = DTB(BTD(cpuObject.program_counter) + 1)  # updating the program counter by 1
 
