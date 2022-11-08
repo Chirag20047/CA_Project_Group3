@@ -310,7 +310,7 @@ class Memory:
     def __init__(self):
         self.busy = False
         self.mem = False  # False --> no memory operation was there --> write back has to do its work
-        self.decodeSignals = None
+        self.decodeSignals = ['None','None','None','None']
 
     def storeSignals(self, signals):
         self.decodeSignals = signals
@@ -361,6 +361,7 @@ def PrintPartialCpuState(cpuObject):
     print(cpuObject.registers)
     cpuObject.clock += 1
 
+
 def main():
     #  Opening the input and log Files
     binary = open('testBinary.txt', 'r')
@@ -384,12 +385,12 @@ def main():
     while True:
         # check = False  # To check whether current clock cycle is needed or not for the program
         # Step 1 :Write Back Stage
-        if not write_back.busy:
+        if not write_back.busy and decode.result is not None:
             if not memStage.mem:  # Given instruction not a memory instruction
-                write_back.writeRegister(memStage.decodeSignals, execute.result, cpuObject.registers)
+                write_back.writeRegister(memStage.decodeSignals, execute.result, cpuObject)
 
         # Step 2 : Memory Stage :
-        if not memStage.busy:
+        if not memStage.busy and execute.decodeSignals is not None:
             if execute.result is not None:
                 # Not a memory operation
                 memStage.storeSignals(execute.decodeSignals)
@@ -401,7 +402,7 @@ def main():
                     memStage.storeWord(execute.decodeSignals, dataMem.memory, cpuObject)
 
         # Step 3 : Execute Stage
-        if not execute.busy:
+        if not execute.busy and memStage.decodeSignals is not None and decode.result is not None:
             if memStage.mem is not None:
                 lis = decode.decodeSignals  # This lis contains all the values of the registers involved in memoryOp
                 if lis[0] !='sw' and lis[0]!='beq': # rd --> value has to updated --> check RAW
@@ -446,7 +447,7 @@ def main():
                 execute.BranchIfEqual(decode.result, cpuObject)
 
         # Step 4 : Decode :
-        if not decode.busy:
+        if not decode.busy and fetch.instruction is not None:
             decode.DecodeInstruction(fetch.instruction)
 
         # Step 5 :
