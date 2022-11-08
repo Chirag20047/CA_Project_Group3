@@ -2,13 +2,13 @@ import random
 import random as rand
 
 
-def BTD(binary ):  # Converts a given binary string (32 bits) to decimal integer (base 10)
+def BTD(binary):  # Converts a given binary string (32 bits) to decimal integer (base 10)
     # 1101
     ch = binary[0]
     binary = binary[::-1]
     # let say the len of binary < 32 bits
     length = len(binary)
-    binary = binary + ch*(32-length)
+    binary = binary + ch * (32 - length)
     num = 0
     for i in range(31):
         if binary[i] == '1':
@@ -68,7 +68,6 @@ class Clock:
 class CPU:
     def __init__(self):
         self.clock = Clock(0)
-        self.registerFile = list()
         initialValue = "0" * 32
         self.program_counter = initialValue  # Initial State
         self.r0 = (initialValue,)  # Immutable Special Register : tuple has been used
@@ -101,10 +100,12 @@ class DataMemory:
 
 class Fetch:
     def __init__(self):
-        self.instruction = ""
+        self.instruction = None
+        self.busy = False
         pass
 
     def FetchInstruction(self, instruction):  # Setting the instruction
+        # self.busy = True  # Fetch stage is busy till decode stage gets free
         self.instruction = instruction
 
 
@@ -116,7 +117,7 @@ class Decode:
         pass
 
     def DecodeInstruction(self, binary):  # decoding the binary instruction fetched from the
-        self.busy = True
+        # self.busy = True
         imm = 0
         rs1 = 0
         rs2 = 0
@@ -202,7 +203,8 @@ class Decode:
 class Xecute:
     def __init__(self):
         self.busy = False  # Used for checking stalling logics
-        self.result = None  # Until no value is being assigned
+        self.result = None  # value of register if needs to be udpated
+        self.decodeSignals = None  # storing decode signals for passing it to further stages
 
     def Add(self, signals, CpuObject):
         # signals = [type,rd,rs1,rs2] :  we have to add rs1 and rs2 in this function
@@ -212,6 +214,7 @@ class Xecute:
             val1 = BTD(CpuObject.registers[signals[2] - 1])
         if signals[3] > 0:  # Not register x0
             val2 = BTD(CpuObject.registers[signals[3] - 1])
+        self.decodeSignals = signals
         self.result = val1 + val2
 
     def Sub(self, signals, CpuObject):
@@ -222,6 +225,7 @@ class Xecute:
             val1 = BTD(CpuObject.registers[signals[2] - 1])
         if signals[3] > 0:  # Not register x0
             val2 = BTD(CpuObject.registers[signals[3] - 1])
+        self.decodeSignals = signals
         self.result = val1 - val2
 
     def AND(self, signals, CpuObject):
@@ -232,6 +236,7 @@ class Xecute:
             val1 = BTD(CpuObject.registers[signals[2] - 1])
         if signals[3] > 0:  # Not register x0
             val2 = BTD(CpuObject.registers[signals[3] - 1])
+        self.decodeSignals = signals
         self.result = val1 and val2
 
     def OR(self, signals, CpuObject):
@@ -242,6 +247,7 @@ class Xecute:
             val1 = BTD(CpuObject.registers[signals[2] - 1])
         if signals[3] > 0:  # Not register x0
             val2 = BTD(CpuObject.registers[signals[3] - 1])
+        self.decodeSignals = signals
         self.result = val1 or val2
 
     def AddImm(self, signals, CpuObject):
@@ -250,6 +256,7 @@ class Xecute:
         if signals[2] > 0:  # Not register x0
             val1 = BTD(CpuObject.registers[signals[2] - 1])
         imm = signals[3]
+        self.decodeSignals = signals
         self.result = val1 + imm
 
     def SLL(self, signals, CpuObject):
@@ -260,6 +267,7 @@ class Xecute:
             val1 = BTD(CpuObject.registers[signals[2] - 1])
         if signals[3] > 0:  # Not register x0
             val2 = BTD(CpuObject.registers[signals[3] - 1])
+        self.decodeSignals = signals
         self.result = val1 << val2
 
     def SRA(self, signals, CpuObject):
@@ -271,19 +279,23 @@ class Xecute:
         if signals[3] > 0:  # Not register x0
             val2 = BTD(CpuObject.registers[signals[3] - 1])
         self.result = val1 >> val2
+        self.decodeSignals = signals
 
-    def LoadWord(self):
+    def LoadWord(self, signals):
         # Nothing has to be done here
-        pass
+        self.result = None
+        self.decodeSignals = signals
 
-    def StoreWord(self):
+    def StoreWord(self, signals):
         # Nothing has to be done here
-        pass
+        self.result = None
+        self.decodeSignals = signals
 
     def BranchIfEqual(self, signals, CpuObject):
         # signals = [type, rs1, rs2, imm]
         val1 = 0
         val2 = 0
+        self.decodeSignals = signals
         if signals[2] > 0:  # Not register x0
             val1 = BTD(CpuObject.registers[signals[2] - 1])
         if signals[3] > 0:  # Not register x0
@@ -297,11 +309,15 @@ class Xecute:
 class Memory:
     def __init__(self):
         self.busy = False
-        self.mem = False
+        self.mem = False  # False --> no memory operation was there --> write back has to do its work
+        self.decodeSignals = None
 
-    def loadWord(self, signals, data , CpuObject):
+    def storeSignals(self, signals):
+        self.decodeSignals = signals
+
+    def loadWord(self, signals, data, CpuObject):
         # lw rd offset(rs1)  val_rd = mem[offset + rs1]
-        val = 0 # contains the value of reg : rs1
+        val = 0  # contains the value of reg : rs1
         if signals[2] > 0:  # Not register x0
             val = BTD(CpuObject.registers[signals[2] - 1])
         temp = signals[3]  # offset value (immediate)
@@ -309,7 +325,7 @@ class Memory:
         temp = DTB(temp)  # this is binary address in memory location
         valLoaded = data[temp]  # this is value in binary to be loaded in register
         CpuObject.registers[signals[1] - 1] = valLoaded
-        self.mem = True     # Indication for the next stage
+        self.mem = True  # Indication for the next stage
 
     def storeWord(self, signals, data, CpuObject):
         # signals = [type, rs1 , rs2 , imm] :  M[rs1 + imm] = val(rs2)
@@ -320,24 +336,30 @@ class Memory:
         if signals[1] > 0:  # Not register x0
             temp1 = BTD(CpuObject.registers[signals[2] - 1])
         temp2 = signals[3]  # imm
-        temp3 = temp1 + temp2   # Contains the address in decimal system
-        temp3 = DTB(temp3)      # Converting the addr to binary for using dictionary
-        data[temp3] = DTB(valLoaded) # Updating the memory dictionary
-        self.mem = True     # Indication for the next stage
+        temp3 = temp1 + temp2  # Contains the address in decimal system
+        temp3 = DTB(temp3)  # Converting the addr to binary for using dictionary
+        data[temp3] = DTB(valLoaded)  # Updating the memory dictionary
+        self.mem = True  # Indication for the next stage
 
 
 class WriteBack:
     def __init__(self):
-        self.busy = False # used for stalling logic
+        self.busy = False  # used for stalling logic if required
+        return
 
     def writeRegister(self, signals, result, CpuObject):
         # signals = [, rd , ...]
         rd = signals[1]
-        if rd == 0 :
+        if rd == 0:
             return
-        CpuObject.registers[rd-1] = DTB(result)
+        CpuObject.registers[rd - 1] = DTB(result)
         return
 
+
+def PrintPartialCpuState(cpuObject):
+    print('State of Register File at Clock Cycle =', cpuObject.clock, 'is as follow : ')
+    print(cpuObject.registers)
+    cpuObject.clock += 1
 
 def main():
     #  Opening the input and log Files
@@ -351,7 +373,7 @@ def main():
     fetch = Fetch()
     decode = Decode()
     execute = Xecute()
-    sysMem = Memory()
+    memStage = Memory()
     write_back = WriteBack()
 
     # Loading the program in the instruction memory & data memory
@@ -359,7 +381,85 @@ def main():
     dataMem.initializeMemory()
 
     # Main Logic of the code
+    while True:
+        # check = False  # To check whether current clock cycle is needed or not for the program
+        # Step 1 :Write Back Stage
+        if not write_back.busy:
+            if not memStage.mem:  # Given instruction not a memory instruction
+                write_back.writeRegister(memStage.decodeSignals, execute.result, cpuObject.registers)
 
+        # Step 2 : Memory Stage :
+        if not memStage.busy:
+            if execute.result is not None:
+                # Not a memory operation
+                memStage.storeSignals(execute.decodeSignals)
+            else:
+                # Given is a memory operation
+                if execute.decodeSignals[0] == "lw":
+                    memStage.loadWord(execute.decodeSignals, dataMem.memory, cpuObject)
+                elif execute.decodeSignals[0] == "sw":
+                    memStage.storeWord(execute.decodeSignals, dataMem.memory, cpuObject)
+
+        # Step 3 : Execute Stage
+        if not execute.busy:
+            if memStage.mem is not None:
+                lis = decode.decodeSignals  # This lis contains all the values of the registers involved in memoryOp
+                if lis[0] !='sw' and lis[0]!='beq': # rd --> value has to updated --> check RAW
+                    registerWrite = lis[1]  # destination register
+                    # Above register should not be there in the memstage signals
+                    if lis[0]!= "lw" and lis[0] != "addi":
+                        if registerWrite in memStage.decodeSignals :
+                            PrintPartialCpuState(cpuObject)
+                            continue
+                    elif lis[0] == "lw" or lis[0]=="addi":
+                        if registerWrite == memStage.decodeSignals[1] or registerWrite == memStage.decodeSignals[2] :
+                            PrintPartialCpuState(cpuObject)
+                            continue
+
+                elif memStage.decodeSignals[0] == "lw": # rd --> RAW and WAW
+                    registerToBeLoaded = memStage.decodeSignals[1]
+                    # Then above value should not be loaded
+                    if registerToBeLoaded == lis[1] or registerToBeLoaded == lis[2]:
+                        PrintPartialCpuState(cpuObject)
+                        continue
+
+            temp = decode.result[0]
+            if temp == "add":
+                execute.Add(decode.result, cpuObject)
+            elif temp == "addi":
+                execute.AddImm(decode.result, cpuObject)
+            elif temp == "sub":
+                execute.Sub(decode.result, cpuObject)
+            elif temp == "and":
+                execute.AND(decode.result, cpuObject)
+            elif temp == "or":
+                execute.OR(decode.result, cpuObject)
+            elif temp == "lw":
+                execute.LoadWord(decode.result)
+            elif temp == "sw":
+                execute.StoreWord(decode.result)
+            elif temp == "sll":
+                execute.SLL(decode.result, cpuObject)
+            elif temp == "sra":
+                execute.SRA(decode.result, cpuObject)
+            elif temp == "beq":
+                execute.BranchIfEqual(decode.result, cpuObject)
+
+        # Step 4 : Decode :
+        if not decode.busy:
+            decode.DecodeInstruction(fetch.instruction)
+
+        # Step 5 :
+        if not fetch.busy:
+            # Fetch Stage is free to work further
+            fetch.FetchInstruction(instMem.instructions[cpuObject.program_counter])
+            cpuObject.program_counter = DTB(BTD(cpuObject.program_counter) + 1)  # updating the program counter by 1
+
+        # if not check:  # Checking whether some work was done or not
+        #     break
+        PrintPartialCpuState(cpuObject)
+
+    # Closing the text files opened
     binary.close()
     print(dataMem.memory)
     # output.close()
@@ -371,10 +471,10 @@ if __name__ == '__main__':
 
 '''
 1) WriteBack :                 'DONE'
-2) Structural Hazard
-3) Data Hazard
-4) Log File 
-5) Main() : 
+2) Structural Hazard            '---'
+3) Data Hazard                  '---'
+4) Log File                                                                             'TO BE DONE TONIGHT'
+5) Main() :                     '---'
     -> instruction by read using instructionMem 
         -> clock update 
         -> all 5 stages have to be looked up on
@@ -383,6 +483,27 @@ if __name__ == '__main__':
             -> at last , stalling logic complete 
         ->  .... (aur bhi cheezein bhuul gaye ho toh Pathik Saheb)
         -> Handle BEQ case : when branched (in main())
-6) LoadNOC and SendNOC
-7) Test Binary
+6) LoadNOC and SendNOC                                                                  'TO BE DONE LATER'
+7) Test Binary              'DONE Building'
+'''
+
+'''
+Example for stalling on the basis of DATA HAZARDS
+   load r3 r2
+   add r3 r0 r3
+   load r3 r2 offset
+   F D X M W
+     F D D X M W
+       F F D X M W  
+      
+   store r3 r2(imm)
+   add r2 r1 r9
+   F D X M W
+     F D D X M W 
+   '''
+
+'''
+-> Structural Hazard : only present in F  
+-> Data Hazard : only present in D because of rd/rs value not available till M updates it completely 
+                : reading a tobeLoaded register value should also be stalled  
 '''
