@@ -299,10 +299,10 @@ class Xecute:
         val1 = 0
         val2 = 0
         self.decodeSignals = signals
+        if signals[1] > 0:  # Not register x0
+            val1 = BTD(CpuObject.registers[signals[1] - 1])
         if signals[2] > 0:  # Not register x0
-            val1 = BTD(CpuObject.registers[signals[2] - 1])
-        if signals[3] > 0:  # Not register x0
-            val2 = BTD(CpuObject.registers[signals[3] - 1])
+            val2 = BTD(CpuObject.registers[signals[2] - 1])
         self.result = val1 == val2
 
 
@@ -394,20 +394,18 @@ def main():
     # Main Logic of the code
     # while True:
     totalInstructions = 0
-    for i in range(14):
+    for i in range(16):
         # check = False  # To check whether current clock cycle is needed or not for the program
         # Step 1 :Write Back Stage
         # print(decode.result)
         # print(i, decode.result)
         if len(decode.result) != 0 and len(memStage.decodeSignals) != 0:
-            # print(i, memStage.mem)
-            if not memStage.mem:  # Given instruction not a memory instruction
+            # print(i, memStage.decodeSignals)
+            if memStage.decodeSignals[0]!='sw' and memStage.decodeSignals[0]!='beq':  # Given instruction not a memory instruction
                 # print(memStage.decodeSignals, .result , i)
                 write_back.writeRegister(memStage.decodeSignals, memStage.result, cpuObject)
                 memStage.mem = False
-            elif memStage.decodeSignals[0] == 'lw':
-                write_back.writeRegister(memStage.decodeSignals, memStage.result, cpuObject)
-                memStage.mem = False
+            memStage.decodeSignals = []
 
         # Step 2 : Memory Stage :
         if len(execute.decodeSignals) != 0:
@@ -420,32 +418,43 @@ def main():
                     memStage.loadWord(execute.decodeSignals, dataMem.memory, cpuObject)
                 elif execute.decodeSignals[0] == "sw":
                     memStage.storeWord(execute.decodeSignals, dataMem.memory, cpuObject)
+            execute.decodeSignals = []
 
         # Step 3 : Execute Stage
-        if len(decode.result) != 0:
-            if memStage.mem == True and len(memStage.decodeSignals) != 0:
-                print(i, decode.result)
-                memStage.mem = False
-                lis = decode.result  # This lis contains all the values of the registers involved in memoryOp
-                if lis[0] != 'sw' and lis[0] != 'beq':  # rd --> value has to updated --> check RAW
-                    registerWrite = lis[1]  # destination register
-                    # Above register should not be there in the memstage signals
-                    if lis[0] != "lw" and lis[0] != "addi":
-                        if registerWrite in memStage.decodeSignals:
-                            # print("1\n")
-                            PrintPartialCpuState(cpuObject)
-                            continue
-                    elif lis[0] == "lw" or lis[0] == "addi":
-                        if registerWrite == memStage.decodeSignals[1] or registerWrite == memStage.decodeSignals[2]:
-                            # print("2\n")
-                            PrintPartialCpuState(cpuObject)
-                            continue
-
-                elif memStage.decodeSignals[0] == "lw":  # rd --> RAW and WAW
-                    registerToBeLoaded = memStage.decodeSignals[1]
-                    # Then above value should not be loaded
-                    if registerToBeLoaded == lis[1] or registerToBeLoaded == lis[2]:
+        # print(i-1, decode.result)
+        if len(decode.result) != 0 :
+            # print(i, decode.result)
+            if len(memStage.decodeSignals)!=0 and memStage.decodeSignals[0] == 'lw':
+                registerToBeWritten = memStage.decodeSignals[1]
+                # print(i, memStage.decodeSignals , decode.result)
+                lis = ['lw', 'sw', 'beq', 'addi']
+                if decode.result[0] not in lis:
+                    # Decode instruction have all registers rd,rs1,rs2
+                    if registerToBeWritten in decode.result:  # RAW and WAW
                         PrintPartialCpuState(cpuObject)
+                        execute.decodeSignals = []
+                        continue
+                else :
+                    # Other instructions have only 2 registers
+                    if registerToBeWritten == decode.result[1] or registerToBeWritten == decode.result[2]:
+                        # print("hi")
+                        execute.decodeSignals = []
+                        PrintPartialCpuState(cpuObject)
+                        continue
+            elif len(memStage.decodeSignals)!=0 and memStage.decodeSignals[0] == 'sw':
+                # we have to check only for WAR case
+                registerToBeWritten = decode.result[1]
+                lis = ['lw', 'sw', 'beq', 'addi']
+                if decode.result[0] not in lis:
+                    # Decode instruction have all registers rd,rs1,rs2
+                    if registerToBeWritten in decode.result:  # RAW and WAW
+                        PrintPartialCpuState(cpuObject)
+                        execute.decodeSignals = []
+                        continue
+                elif decode.result[0] == 'addi':
+                    if registerToBeWritten == memStage.decodeSignals[1] or registerToBeWritten == memStage.decodeSignals[2]:
+                        PrintPartialCpuState(cpuObject)
+                        execute.decodeSignals = []
                         continue
             temp = decode.result[0]
             # print(i, temp)
@@ -468,12 +477,14 @@ def main():
             elif temp == "sra":
                 execute.SRA(decode.result, cpuObject)
             elif temp == "beq":
-                # print("hi")
+                # print(i, "hi")
                 execute.BranchIfEqual(decode.result, cpuObject)
+                # print(execute.result)
                 if execute.result:
-                    cpuObject.program_counter.updateCounter(decode.result[3] - 2)
+                    effective_offset = decode.result[3] - 1
+                    cpuObject.program_counter= DTB(BTD(cpuObject.program_counter) + effective_offset)
                     fetch.instruction = ""
-                    totalInstructions = totalInstructions - 2 + decode.result[3]
+                    totalInstructions = cpuObject.program_counter
                     decode.result = []
                     execute.decodeSignals = []
                     memStage.decodeSignals = []
@@ -504,7 +515,18 @@ def main():
 
 
 if __name__ == '__main__':
-    flag1 = 0
     main()
 
 # By passing to be implementted
+'''
+lw r3
+add r3
+F D X M W
+  F D D X M W
+  
+  
+add r3
+lw r3
+F D X M W
+  F D X M W (X -> gets the by passed value) : to be implemented
+'''
