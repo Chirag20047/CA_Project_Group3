@@ -2,8 +2,13 @@ import random
 import random as rand
 
 
-def BTD(binary):  # Converts a given binary string (32 bits) to decimal integer (base 10)
+def BTD(binary ):  # Converts a given binary string (32 bits) to decimal integer (base 10)
+    # 1101
+    ch = binary[0]
     binary = binary[::-1]
+    # let say the len of binary < 32 bits
+    length = len(binary)
+    binary = binary + ch*(32-length)
     num = 0
     for i in range(31):
         if binary[i] == '1':
