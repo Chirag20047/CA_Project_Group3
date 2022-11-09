@@ -363,17 +363,21 @@ class WriteBack:
         return
 
 
-def PrintPartialCpuState(cpuObject):
-    print('State of Register File at Clock Cycle =', cpuObject.clock.getCounter(), ': ')
-    print(cpuObject.registers)
-    # cpuObject.clock = cpuObject.clock +  1
+def PrintPartialCpuState(cpuObject, writeFile):
+    string = 'State of Register File at Clock Cycle =', cpuObject.clock.getCounter(), ':'
+    writeFile.write(str(string))
+    writeFile.write("\n")
+    output = cpuObject.registers
+    writeFile.write(str(output))
+    writeFile.write("\n")
     cpuObject.clock.updateCounter(1)
+    return
 
 
 def main():
     #  Opening the input and log Files
     binary = open('testBinary.txt', 'r')
-    # output = open('logFile.txt', 'w')
+    output = open('logFile.txt', 'w')
 
     # Instantiating the objects of the System
     cpuObject = CPU()
@@ -394,7 +398,7 @@ def main():
     # Main Logic of the code
     # while True:
     totalInstructions = 0
-    for i in range(15):
+    for i in range(27):
         # check = False  # To check whether current clock cycle is needed or not for the program
         # Step 1 :Write Back Stage
         # print(decode.result)
@@ -432,7 +436,7 @@ def main():
                 if decode.result[0] not in lis:
                     # Decode instruction have all registers rd,rs1,rs2
                     if registerToBeWritten in decode.result:  # RAW and WAW
-                        PrintPartialCpuState(cpuObject)
+                        PrintPartialCpuState(cpuObject, output)
                         execute.decodeSignals = []
                         continue
                 else :
@@ -440,7 +444,7 @@ def main():
                     if registerToBeWritten == decode.result[1] or registerToBeWritten == decode.result[2]:
                         # print("hi")
                         execute.decodeSignals = []
-                        PrintPartialCpuState(cpuObject)
+                        PrintPartialCpuState(cpuObject, output)
                         continue
             elif len(memStage.decodeSignals)!=0 and memStage.decodeSignals[0] == 'sw':
                 # we have to check only for WAR case
@@ -449,12 +453,12 @@ def main():
                 if decode.result[0] not in lis:
                     # Decode instruction have all registers rd,rs1,rs2
                     if registerToBeWritten in decode.result:  # RAW and WAW
-                        PrintPartialCpuState(cpuObject)
+                        PrintPartialCpuState(cpuObject, output)
                         execute.decodeSignals = []
                         continue
                 elif decode.result[0] == 'addi':
                     if registerToBeWritten == memStage.decodeSignals[1] or registerToBeWritten == memStage.decodeSignals[2]:
-                        PrintPartialCpuState(cpuObject)
+                        PrintPartialCpuState(cpuObject, output)
                         execute.decodeSignals = []
                         continue
             temp = decode.result[0]
@@ -491,7 +495,7 @@ def main():
                     decode.result = []
                     execute.decodeSignals = []
                     memStage.decodeSignals = []
-                    PrintPartialCpuState(cpuObject)
+                    PrintPartialCpuState(cpuObject, output)
                     continue  # Move to a new cycle
 
         # Step 4 : Decode :
@@ -511,28 +515,13 @@ def main():
         # if not check:  # Checking whether some work was done or not
         #     break
         # print("3\n")
-        PrintPartialCpuState(cpuObject)
-
+        PrintPartialCpuState(cpuObject, output)
     # Closing the text files opened
     binary.close()
     # print("End State of Memory\n", dataMem.memory)
-    # output.close()
+    output.close()
     return
 
 
 if __name__ == '__main__':
     main()
-
-# By passing to be implementted
-'''
-lw r3
-add r3
-F D X M W
-  F D D X M W
-  
-  
-add r3
-lw r3
-F D X M W
-  F D X M W (X -> gets the by passed value) : to be implemented
-'''
