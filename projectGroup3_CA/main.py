@@ -517,7 +517,7 @@ def main():
             memStage.decodeSignals = []
 
         # Step 2 : Memory Stage :
-        print(i, execute.decodeSignals, execute.result)
+        # print(i, execute.decodeSignals, execute.result)
         signals_for_execute = []
         if len(execute.decodeSignals) != 0:
             signals_for_execute = execute.decodeSignals
@@ -536,39 +536,39 @@ def main():
         # Step 3 : Execute Stage
         if len(decode.result) != 0:
             # print(i, decode.result)
-            if len(memStage.decodeSignals) != 0 and memStage.decodeSignals[0] == 'lw':
-                registerToBeWritten = memStage.decodeSignals[1]
-                # print(i, memStage.decodeSignals , decode.result)
-                lis = ['lw', 'sw', 'beq', 'addi']
-                if decode.result[0] not in lis:
-                    # Decode instruction have all registers rd,rs1,rs2
-                    # print(i, decode.result)
-                    if registerToBeWritten in decode.result:  # RAW and WAW
-                        PrintPartialCpuState(cpuObject, output)
-                        execute.decodeSignals = []
-                        continue
-                else:
-                    # Other instructions have only 2 registers
-                    if registerToBeWritten == decode.result[1] or registerToBeWritten == decode.result[2]:
-                        # print("hi")
-                        execute.decodeSignals = []
-                        PrintPartialCpuState(cpuObject, output)
-                        continue
-            elif len(memStage.decodeSignals) != 0 and memStage.decodeSignals[0] == 'sw':
-                # we have to check only for WAR case
-                registerToBeWritten = decode.result[1]
-                lis = ['lw', 'sw', 'beq', 'addi']
-                if decode.result[0] not in lis:
-                    # Decode instruction have all registers rd,rs1,rs2
-                    if registerToBeWritten in decode.result:  # RAW and WAW
-                        PrintPartialCpuState(cpuObject, output)
-                        execute.decodeSignals = []
-                        continue
-                elif decode.result[0] == 'addi':
-                    if registerToBeWritten == memStage.decodeSignals[1] or registerToBeWritten == memStage.decodeSignals[2]:
-                        PrintPartialCpuState(cpuObject, output)
-                        execute.decodeSignals = []
-                        continue
+            # if len(memStage.decodeSignals) != 0 and memStage.decodeSignals[0] == 'lw':
+            #     registerToBeWritten = memStage.decodeSignals[1]
+            #     # print(i, memStage.decodeSignals , decode.result)
+            #     lis = ['lw', 'sw', 'beq', 'addi']
+            #     if decode.result[0] not in lis:
+            #         # Decode instruction have all registers rd,rs1,rs2
+            #         # print(i, decode.result)
+            #         if registerToBeWritten in decode.result:  # RAW and WAW
+            #             PrintPartialCpuState(cpuObject, output)
+            #             execute.decodeSignals = []
+            #             continue
+            #     else:
+            #         # Other instructions have only 2 registers
+            #         if registerToBeWritten == decode.result[1] or registerToBeWritten == decode.result[2]:
+            #             # print("hi")
+            #             execute.decodeSignals = []
+            #             PrintPartialCpuState(cpuObject, output)
+            #             continue
+            # elif len(memStage.decodeSignals) != 0 and memStage.decodeSignals[0] == 'sw':
+            #     # we have to check only for WAR case
+            #     registerToBeWritten = decode.result[1]
+            #     lis = ['lw', 'sw', 'beq', 'addi']
+            #     if decode.result[0] not in lis:
+            #         # Decode instruction have all registers rd,rs1,rs2
+            #         if registerToBeWritten in decode.result:  # RAW and WAW
+            #             PrintPartialCpuState(cpuObject, output)
+            #             execute.decodeSignals = []
+            #             continue
+            #     elif decode.result[0] == 'addi':
+            #         if registerToBeWritten == memStage.decodeSignals[1] or registerToBeWritten == memStage.decodeSignals[2]:
+            #             PrintPartialCpuState(cpuObject, output)
+            #             execute.decodeSignals = []
+            #             continue
             # Storing the type of the instruction.
             temp = decode.result[0]
             # Fetching the by-passed value from the later stages(if required) using the memstage.decodeSignals .
@@ -587,8 +587,13 @@ def main():
 
             # Working on the stalling because of memory -> execute (RAW) type instruction.
             stalling_RAW_M_X = []
-            if type in X_X_list or type == 'beq' and memStage.decodeSignals[0] == 'lw':
+            # print(temp, memStage.decodeSignals)
+            if (type in X_X_list or type == 'beq') and memStage.decodeSignals[0] == 'lw':
+                print("hi")
+                registers_to_be_read.append(decode.result[1])
+                registers_to_be_read.append(decode.result[2])
                 if memStage.decodeSignals[1] in registers_to_be_read:
+                    # print("hi")
                     PrintPartialCpuState(cpuObject, output)
                     execute.decodeSignals = []
                     continue
