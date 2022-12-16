@@ -493,6 +493,9 @@ def main():
     temporary = 4
     # for i in range(20):
     i = -1
+    # Declaring stalling flag and delay by the user.
+    x = 1   # No Delay case.
+    stalling_flag = False
     while True:
         # check = False  # To check whether current clock cycle is needed or not for the program
         # print(decode.result)
@@ -554,15 +557,22 @@ def main():
             # Working on the stalling because of memory -> execute (RAW) type instruction.
             stalling_RAW_M_X = []
             # print(temp, memStage.decodeSignals)
-            if (type in X_X_list or type == 'beq') and memStage.decodeSignals[0] == 'lw':
-                print("hi")
-                registers_to_be_read.append(decode.result[1])
-                registers_to_be_read.append(decode.result[2])
-                if memStage.decodeSignals[1] in registers_to_be_read:
-                    # print("hi")
+            if temp in X_X_list or temp == 'beq':
+                if stalling_flag is True and x == 0:
+                    stalling_flag = False
+                elif stalling_flag is True and x > 0:
+                    # We have stall further.
+                    x = x - 1
                     PrintPartialCpuState(cpuObject, output)
-                    execute.decodeSignals = []
                     continue
+                elif len(memStage.decodeSignals) != 0 and memStage.decodeSignals[0] == 'lw':
+                    registers_to_be_read.append(decode.result[1])
+                    registers_to_be_read.append(decode.result[2])
+                    if memStage.decodeSignals[1] in registers_to_be_read:
+                        stalling_flag = True
+                        PrintPartialCpuState(cpuObject, output)
+                        execute.decodeSignals = []
+                        continue
 
             # print(i, decode.result)
             if temp == "add":
@@ -641,3 +651,9 @@ def main():
 if __name__ == '__main__':
     # Invoking the main method.
     main()
+
+'''
+1) Chirag : Stalling Debugging
+2) Memory State of CPU &  Graphs
+3) User Input(x:delay) 
+'''
