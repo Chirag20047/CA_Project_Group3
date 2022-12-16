@@ -242,7 +242,7 @@ class Xecute:
         self.decodeSignals = signals
         self.result = 1
 
-    def Add(self, signals, CpuObject):
+    def Add(self, signals, CpuObject, byPassX_X):
         # signals = [type,rd,rs1,rs2] :  we have to add rs1 and rs2 in this function
         val1 = 0
         val2 = 0
@@ -250,10 +250,18 @@ class Xecute:
             val1 = CpuObject.registers[signals[2] - 1]
         if signals[3] > 0:  # Not register x0
             val2 = CpuObject.registers[signals[3] - 1]
+        # Checking for bypassing values
+        # bypass = [rs, value]
+        if len(byPassX_X) != 0:
+            if signals[1] == byPassX_X[0]:
+                val1 = byPassX_X[1]
+            else:
+                val2 = byPassX_X[1]
+
         self.decodeSignals = signals
         self.result = val1 + val2
 
-    def Sub(self, signals, CpuObject):
+    def Sub(self, signals, CpuObject, byPassX_X):
         # signals = [type,rd,rs1,rs2] :  we have to add rs1 and rs2 in this function
         val1 = 0
         val2 = 0
@@ -261,11 +269,17 @@ class Xecute:
             val1 = CpuObject.registers[signals[2] - 1]
         if signals[3] > 0:  # Not register x0
             val2 = CpuObject.registers[signals[3] - 1]
+        # Checking for bypassing values
+        if len(byPassX_X) != 0:
+            if signals[1] == byPassX_X[0]:
+                val1 = byPassX_X[1]
+            else:
+                val2 = byPassX_X[1]
         self.decodeSignals = signals
         # print("sub", CpuObject.registers)
         self.result = val1 - val2
 
-    def AND(self, signals, CpuObject):
+    def AND(self, signals, CpuObject, byPassX_X):
         # signals = [type,rd,rs1,rs2] :  we have to add rs1 and rs2 in this function
         val1 = 0
         val2 = 0
@@ -273,10 +287,16 @@ class Xecute:
             val1 = CpuObject.registers[signals[2] - 1]
         if signals[3] > 0:  # Not register x0
             val2 = CpuObject.registers[signals[3] - 1]
+        # Checking for bypassing values
+        if len(byPassX_X) != 0:
+            if signals[1] == byPassX_X[0]:
+                val1 = byPassX_X[1]
+            else:
+                val2 = byPassX_X[1]
         self.decodeSignals = signals
         self.result = val1 & val2
 
-    def OR(self, signals, CpuObject):
+    def OR(self, signals, CpuObject, byPassX_X):
         # signals = [type,rd,rs1,rs2] :  we have to add rs1 and rs2 in this function
         val1 = 0
         val2 = 0
@@ -284,19 +304,28 @@ class Xecute:
             val1 = CpuObject.registers[signals[2] - 1]
         if signals[3] > 0:  # Not register x0
             val2 = CpuObject.registers[signals[3] - 1]
+        # Checking for bypassing values
+        if len(byPassX_X) != 0:
+            if signals[1] == byPassX_X[0]:
+                val1 = byPassX_X[1]
+            else:
+                val2 = byPassX_X[1]
         self.decodeSignals = signals
         self.result = val1 | val2
 
-    def AddImm(self, signals, CpuObject):
+    def AddImm(self, signals, CpuObject, byPassX_X):
         # signals = [type,rd,rs1,imm] :  we have to add rs1 and rs2 in this function
         val1 = 0
         if signals[2] > 0:  # Not register x0
             val1 = CpuObject.registers[signals[2] - 1]
         imm = signals[3]
+        # Checking for bypassing values
+        if len(byPassX_X) != 0:
+            val1 = byPassX_X[1]
         self.decodeSignals = signals
         self.result = val1 + imm
 
-    def SLL(self, signals, CpuObject):
+    def SLL(self, signals, CpuObject, byPassX_X):
         # signals = [type, rd, rs1, rs2]
         val1 = 0
         val2 = 0
@@ -304,10 +333,16 @@ class Xecute:
             val1 = CpuObject.registers[signals[2] - 1]
         if signals[3] > 0:  # Not register x0
             val2 = CpuObject.registers[signals[3] - 1]
+        # Checking for bypassing values
+        if len(byPassX_X) != 0:
+            if signals[1] == byPassX_X[0]:
+                val1 = byPassX_X[1]
+            else:
+                val2 = byPassX_X[1]
         self.decodeSignals = signals
         self.result = val1 << val2
 
-    def SRA(self, signals, CpuObject):
+    def SRA(self, signals, CpuObject, byPassX_X):
         # signals = [type, rd, rs1, rs2]
         val1 = 0
         val2 = 0
@@ -315,6 +350,12 @@ class Xecute:
             val1 = CpuObject.registers[signals[2] - 1]
         if signals[3] > 0:  # Not register x0
             val2 = CpuObject.registers[signals[3] - 1]
+        # Checking for bypassing values
+        if len(byPassX_X) != 0:
+            if signals[1] == byPassX_X[0]:
+                val1 = byPassX_X[1]
+            else:
+                val2 = byPassX_X[1]
         self.result = val1 >> val2
         self.decodeSignals = signals
 
@@ -329,7 +370,7 @@ class Xecute:
         self.result = None
         self.decodeSignals = signals
 
-    def BranchIfEqual(self, signals, CpuObject):
+    def BranchIfEqual(self, signals, CpuObject, byPassX_X):
         # signals = [type, rs1, rs2, imm]
         val1 = 0
         val2 = 0
@@ -338,6 +379,12 @@ class Xecute:
             val1 = CpuObject.registers[signals[1] - 1]
         if signals[2] > 0:  # Not register x0
             val2 = CpuObject.registers[signals[2] - 1]
+        # Checking for bypassing values
+        if len(byPassX_X) != 0:
+            if signals[1] == byPassX_X[0]:
+                val1 = byPassX_X[1]
+            else:
+                val2 = byPassX_X[1]
         self.result = val1 == val2
 
 
@@ -481,7 +528,6 @@ def main():
             execute.decodeSignals = []
 
         # Step 3 : Execute Stage
-        # print(i, decode.result)
         if len(decode.result) != 0:
             # print(i, decode.result)
             if len(memStage.decodeSignals) != 0 and memStage.decodeSignals[0] == 'lw':
@@ -517,29 +563,52 @@ def main():
                         PrintPartialCpuState(cpuObject, output)
                         execute.decodeSignals = []
                         continue
+            # Storing the type of the instruction.
             temp = decode.result[0]
+            # Fetching the by-passed value from the later stages(if required) using the memstage.decodeSignals .
+            bypassed_value = []
+            X_X_list = ['add', 'sub', 'or', 'and', 'sll', 'sra', 'addi']
+            registers_to_be_read = []
+            if temp in X_X_list or temp == 'beq':
+                registers_to_be_read.append(decode.result[1])
+                if temp != 'addi':
+                    registers_to_be_read.append(decode.result[2])
+                # print(memStage.decodeSignals)
+                if memStage.decodeSignals != [] and memStage.decodeSignals[0] in X_X_list and memStage.decodeSignals[1] in registers_to_be_read:
+                    #         By passing is needed from the above instruction pipeline stage.
+                    bypassed_value.append(memStage.decodeSignals[1])
+                    bypassed_value.append(memStage.result)
+
+            # Working on the stalling because of memory -> execute (RAW) type instruction.
+            stalling_RAW_M_X = []
+            if type in X_X_list or type == 'beq' and memStage.decodeSignals[0] == 'lw':
+                if memStage.decodeSignals[1] in registers_to_be_read:
+                    PrintPartialCpuState(cpuObject, output)
+                    execute.decodeSignals = []
+                    continue
+
             # print(i, decode.result)
             if temp == "add":
-                execute.Add(decode.result, cpuObject)
+                execute.Add(decode.result, cpuObject, bypassed_value)
             elif temp == "addi":
-                execute.AddImm(decode.result, cpuObject)
+                execute.AddImm(decode.result, cpuObject, bypassed_value)
             elif temp == "sub":
-                execute.Sub(decode.result, cpuObject)
+                execute.Sub(decode.result, cpuObject, bypassed_value)
             elif temp == "and":
-                execute.AND(decode.result, cpuObject)
+                execute.AND(decode.result, cpuObject, bypassed_value)
             elif temp == "or":
-                execute.OR(decode.result, cpuObject)
+                execute.OR(decode.result, cpuObject, bypassed_value)
             elif temp == "lw":
                 execute.LoadWord(decode.result)
             elif temp == "sw":
                 execute.StoreWord(decode.result)
             elif temp == "sll":
-                execute.SLL(decode.result, cpuObject)
+                execute.SLL(decode.result, cpuObject, bypassed_value)
             elif temp == "sra":
-                execute.SRA(decode.result, cpuObject)
+                execute.SRA(decode.result, cpuObject, bypassed_value)
             elif temp == "beq":
-                # print(i, "hi")
-                execute.BranchIfEqual(decode.result, cpuObject)
+                # decode = [type, rs1, rs2, imm]
+                execute.BranchIfEqual(decode.result, cpuObject, bypassed_value)
                 # print(execute.result)
                 if execute.result:
                     effective_offset = decode.result[3] - 2
@@ -549,8 +618,7 @@ def main():
                     fetch.instruction = ""
                     totalInstructions = cpuObject.program_counter
                     decode.result = []
-                    execute.decodeSignals = []
-                    memStage.decodeSignals = []
+                    # execute.decodeSignals = []
                     PrintPartialCpuState(cpuObject, output)
                     continue  # Move to a new cycle
 
