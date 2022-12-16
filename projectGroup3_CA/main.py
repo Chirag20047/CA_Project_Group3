@@ -359,7 +359,7 @@ class Memory:
             val = CpuObject.registers[signals[2] - 1]
         temp = signals[3]  # offset value (immediate)
         temp = temp + val
-        temp = DTB(temp)  # this is binary address in memory location
+        temp = temp  # this is binary address in memory location
         valLoaded = data[temp]  # this is value in binary to be loaded in register
         # CpuObject.registers[signals[1] - 1] = valLoaded
         self.decodeSignals = signals
@@ -368,6 +368,7 @@ class Memory:
 
     def storeWord(self, signals, data, CpuObject):
         # signals = [type, rs1 , rs2 , imm] :  M[rs1 + imm] = val(rs2)
+        # print("hi", signals)
         valLoaded = 0  # contains the value of reg : rs2
         if signals[2] > 0:  # Not register x0
             valLoaded = CpuObject.registers[signals[2] - 1]
@@ -375,8 +376,8 @@ class Memory:
         if signals[1] > 0:  # Not register x0
             temp1 = CpuObject.registers[signals[1] - 1]
         temp2 = signals[3]  # imm
-        temp3 = temp1 + temp2  # Contains the address in decimal system
-        temp3 = DTB(temp3)  # Converting the addr to binary for using dictionary
+        temp3 = temp1 + temp2  # Contains the address in binary system
+        # temp3 = temp3  # Converting the addr to binary for using dictionary
         # print("mem value: ", temp3)
         data[temp3] = valLoaded  # Updating the memory dictionary
         self.decodeSignals = signals
