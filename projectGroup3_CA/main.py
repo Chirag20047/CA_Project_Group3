@@ -253,7 +253,7 @@ class Xecute:
         # Checking for bypassing values
         # bypass = [rs, value]
         if len(byPassX_X) != 0:
-            if signals[1] == byPassX_X[0]:
+            if signals[2] == byPassX_X[0]:
                 val1 = byPassX_X[1]
             else:
                 val2 = byPassX_X[1]
@@ -263,6 +263,7 @@ class Xecute:
 
     def Sub(self, signals, CpuObject, byPassX_X):
         # signals = [type,rd,rs1,rs2] :  we have to add rs1 and rs2 in this function
+        # print(signals)
         val1 = 0
         val2 = 0
         if signals[2] > 0:  # Not register x0
@@ -270,14 +271,17 @@ class Xecute:
         if signals[3] > 0:  # Not register x0
             val2 = CpuObject.registers[signals[3] - 1]
         # Checking for bypassing values
+        # print(val1,val2)
+        # print(byPassX_X)
         if len(byPassX_X) != 0:
-            if signals[1] == byPassX_X[0]:
+            if signals[2] == byPassX_X[0]:
                 val1 = byPassX_X[1]
             else:
                 val2 = byPassX_X[1]
         self.decodeSignals = signals
         # print("sub", CpuObject.registers)
         self.result = val1 - val2
+        # print(self.result)
 
     def AND(self, signals, CpuObject, byPassX_X):
         # signals = [type,rd,rs1,rs2] :  we have to add rs1 and rs2 in this function
@@ -289,7 +293,7 @@ class Xecute:
             val2 = CpuObject.registers[signals[3] - 1]
         # Checking for bypassing values
         if len(byPassX_X) != 0:
-            if signals[1] == byPassX_X[0]:
+            if signals[2] == byPassX_X[0]:
                 val1 = byPassX_X[1]
             else:
                 val2 = byPassX_X[1]
@@ -306,7 +310,7 @@ class Xecute:
             val2 = CpuObject.registers[signals[3] - 1]
         # Checking for bypassing values
         if len(byPassX_X) != 0:
-            if signals[1] == byPassX_X[0]:
+            if signals[2] == byPassX_X[0]:
                 val1 = byPassX_X[1]
             else:
                 val2 = byPassX_X[1]
@@ -335,7 +339,7 @@ class Xecute:
             val2 = CpuObject.registers[signals[3] - 1]
         # Checking for bypassing values
         if len(byPassX_X) != 0:
-            if signals[1] == byPassX_X[0]:
+            if signals[2] == byPassX_X[0]:
                 val1 = byPassX_X[1]
             else:
                 val2 = byPassX_X[1]
@@ -352,7 +356,7 @@ class Xecute:
             val2 = CpuObject.registers[signals[3] - 1]
         # Checking for bypassing values
         if len(byPassX_X) != 0:
-            if signals[1] == byPassX_X[0]:
+            if signals[2] == byPassX_X[0]:
                 val1 = byPassX_X[1]
             else:
                 val2 = byPassX_X[1]
@@ -364,6 +368,7 @@ class Xecute:
         # Nothing has to be done here
         self.result = None
         self.decodeSignals = signals
+        # print(signals)
 
     def StoreWord(self, signals):
         # Nothing has to be done here
@@ -381,7 +386,7 @@ class Xecute:
             val2 = CpuObject.registers[signals[2] - 1]
         # Checking for bypassing values
         if len(byPassX_X) != 0:
-            if signals[1] == byPassX_X[0]:
+            if signals[2] == byPassX_X[0]:
                 val1 = byPassX_X[1]
             else:
                 val2 = byPassX_X[1]
@@ -491,7 +496,7 @@ def main():
     while True:
         # check = False  # To check whether current clock cycle is needed or not for the program
         # print(decode.result)
-        # i = i + 1
+        i = i + 1
         # print(i, memStage.decodeSignals, memStage.result)
         # Step 1 :Write Back Stage
         if len(memStage.decodeSignals) != 0:
@@ -512,7 +517,7 @@ def main():
             memStage.decodeSignals = []
 
         # Step 2 : Memory Stage :
-        # print(i, execute.decodeSignals, execute.result)
+        print(i, execute.decodeSignals, execute.result)
         signals_for_execute = []
         if len(execute.decodeSignals) != 0:
             signals_for_execute = execute.decodeSignals
@@ -522,6 +527,7 @@ def main():
             else:
                 # Given is a memory operation
                 if execute.decodeSignals[0] == "lw":
+                    # print(cpuObject.program_counter, execute.decodeSignals)
                     memStage.loadWord(execute.decodeSignals, dataMem.memory, cpuObject)
                 elif execute.decodeSignals[0] == "sw":
                     memStage.storeWord(execute.decodeSignals, dataMem.memory, cpuObject)
