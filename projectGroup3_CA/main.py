@@ -18,6 +18,7 @@ def BTD(binary):  # Converts a given binary string (32 bits) to decimal integer 
         num = num + (pow(2, 31) * -1)
     return num
 
+
 def reverse(x):
     return x[::-1]
 
@@ -450,12 +451,14 @@ def main():
             # print(i, memStage.decodeSignals)
             # print(memStage.decodeSignals)
             if memStage.decodeSignals[0] == 'loadnoc':
-                cpuObject.specialRegisters[cpuObject.registers[memStage.decodeSignals[2] - 1] + memStage.decodeSignals[3]] = memStage.result
+                cpuObject.specialRegisters[
+                    cpuObject.registers[memStage.decodeSignals[2] - 1] + memStage.decodeSignals[3]] = memStage.result
 
             elif memStage.decodeSignals[0] == 'storenoc':
                 cpuObject.specialRegisters[16400] = 1
 
-            elif memStage.decodeSignals[0] != 'sw' and memStage.decodeSignals[0] != 'beq':  # Given instruction not a memory instruction
+            elif memStage.decodeSignals[0] != 'sw' and memStage.decodeSignals[
+                0] != 'beq':  # Given instruction not a memory instruction
                 # print(memStage.decodeSignals, .result , i)
                 write_back.writeRegister(memStage.decodeSignals, memStage.result, cpuObject)
                 memStage.mem = False
@@ -463,7 +466,9 @@ def main():
 
         # Step 2 : Memory Stage :
         # print(i, execute.decodeSignals, execute.result)
+        signals_for_execute = []
         if len(execute.decodeSignals) != 0:
+            signals_for_execute = execute.decodeSignals
             if execute.decodeSignals[0] not in ["sw", 'lw']:
                 # Not a memory operation
                 memStage.storeSignals(execute.decodeSignals, execute.result)
@@ -508,8 +513,7 @@ def main():
                         execute.decodeSignals = []
                         continue
                 elif decode.result[0] == 'addi':
-                    if registerToBeWritten == memStage.decodeSignals[1] or registerToBeWritten == \
-                            memStage.decodeSignals[2]:
+                    if registerToBeWritten == memStage.decodeSignals[1] or registerToBeWritten == memStage.decodeSignals[2]:
                         PrintPartialCpuState(cpuObject, output)
                         execute.decodeSignals = []
                         continue
@@ -590,4 +594,5 @@ def main():
 
 
 if __name__ == '__main__':
+    # Invoking the main method.
     main()
