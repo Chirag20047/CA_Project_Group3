@@ -90,6 +90,7 @@ class InstructionMemory:
         self.instructions = list()
 
     def loadProgram(self, file):  # Loading the complete program in instruction Memory Obj: data member
+        # instruction_memory_delay = int(input("Enter the delay(in cycles) for Instruction memory: "))
         for row in file:
             temp = row.strip()
             self.instructions.append(temp)
@@ -102,6 +103,7 @@ class DataMemory:
 
     def initializeMemory(self):  # Initializing Memory with all 0
         initialValue = 0  # initial Value of each of the memory locations
+        # data_memory_delay = int(input("Enter the delay(in cycles) for data memory: "))
         for i in range(1000):  # Number of different memory locations : 1000 (starting from 0)
             addr = i  # address of the memory location
             self.memory[addr] = initialValue
@@ -538,13 +540,15 @@ def main():
 
         # Step 3 : Execute Stage
         if len(decode.result) != 0:
-            # print(i, decode.result)
+            # print(i, decode.result, memStage.decodeSignals)
             temp = decode.result[0]
             # Fetching the by-passed value from the later stages(if required) using the memstage.decodeSignals .
             bypassed_value = []
             X_X_list = ['add', 'sub', 'or', 'and', 'sll', 'sra', 'addi']
             registers_to_be_read = []
             if temp in X_X_list or temp == 'beq':
+                # if temp == 'beq':
+                #     print("hi")
                 registers_to_be_read.append(decode.result[1])
                 if temp != 'addi':
                     registers_to_be_read.append(decode.result[2])
@@ -560,19 +564,33 @@ def main():
             if temp in X_X_list or temp == 'beq':
                 if stalling_flag is True and x == 0:
                     stalling_flag = False
-                elif stalling_flag is True and x > 0:
-                    # We have stall further.
+                if stalling_flag is True and x > 0:
+                    # WE HAVE TO STALL FURTHER.
                     x = x - 1
                     PrintPartialCpuState(cpuObject, output)
+                    # print("hi")
                     continue
                 elif len(memStage.decodeSignals) != 0 and memStage.decodeSignals[0] == 'lw':
-                    registers_to_be_read.append(decode.result[1])
-                    registers_to_be_read.append(decode.result[2])
-                    if memStage.decodeSignals[1] in registers_to_be_read:
-                        stalling_flag = True
-                        PrintPartialCpuState(cpuObject, output)
-                        execute.decodeSignals = []
-                        continue
+                    if decode.result[0] == 'beq':
+                        registers_to_be_read = [decode.result[1], decode.result[2]]
+                        if memStage.decodeSignals[1] in registers_to_be_read:
+                            stalling_flag = True
+                            # Cycle delaying started (1st cycle counted for current cycle).
+                            x = x - 1
+                            PrintPartialCpuState(cpuObject, output)
+                            execute.decodeSignals = []
+                            # print("hi")
+                            continue
+                    elif decode.result[0] in X_X_list:
+                        registers_to_be_read = [decode.result[2], decode.result[3]]
+                        if memStage.decodeSignals[1] in registers_to_be_read:
+                            stalling_flag = True
+                            # Cycle delaying started (1st cycle counted for current cycle).
+                            x = x - 1
+                            PrintPartialCpuState(cpuObject, output)
+                            execute.decodeSignals = []
+                            # print("hi")
+                            continue
 
             # print(i, decode.result)
             if temp == "add":
