@@ -326,7 +326,7 @@ class Xecute:
             val1 = CpuObject.registers[signals[2] - 1]
         imm = signals[3]
         # Checking for bypassing values
-        if len(byPassX_X) != 0:
+        if len(byPassX_X) != 0 and signals[2] == byPassX_X[0]:
             val1 = byPassX_X[1]
         self.decodeSignals = signals
         self.result = val1 + imm
@@ -505,7 +505,7 @@ def main():
         # print(i, memStage.decodeSignals, memStage.result)
         # Step 1 :Write Back Stage
         if len(memStage.decodeSignals) != 0:
-            print(i, memStage.decodeSignals, memStage.result)
+            # print(i, memStage.decodeSignals, memStage.result)
             # print(memStage.decodeSignals)
             if memStage.decodeSignals[0] == 'loadnoc':
                 cpuObject.specialRegisters[
@@ -551,9 +551,11 @@ def main():
             if temp in X_X_list or temp == 'beq':
                 # if temp == 'beq':
                 #     print("hi")
-                registers_to_be_read.append(decode.result[1])
-                if temp != 'addi':
-                    registers_to_be_read.append(decode.result[2])
+                registers_to_be_read.append(decode.result[2])
+                if temp == 'beq':
+                    registers_to_be_read.append(decode.result[1])
+                else:
+                    registers_to_be_read.append(decode.result[3])
                 # print(memStage.decodeSignals)
                 if memStage.decodeSignals != [] and memStage.decodeSignals[0] in X_X_list and memStage.decodeSignals[1] in registers_to_be_read:
                     #         By passing is needed from the above instruction pipeline stage.
@@ -600,8 +602,12 @@ def main():
                 #     print(bypassed_value)
                 execute.Add(decode.result, cpuObject, bypassed_value)
             elif temp == "addi":
+                # if i == 4:
+                #     print(bypassed_value)
                 execute.AddImm(decode.result, cpuObject, bypassed_value)
             elif temp == "sub":
+                # if i == 25:
+                #     print(bypassed_value)
                 execute.Sub(decode.result, cpuObject, bypassed_value)
             elif temp == "and":
                 execute.AND(decode.result, cpuObject, bypassed_value)
@@ -675,6 +681,6 @@ if __name__ == '__main__':
     main()
 
 '''
-2) Memory State of CPU --> [Register File, ] &  Graphs
+2) Memory State of CPU ==> [ Register File ] & Graphs
 3) User Input(x:delay) 
 '''
