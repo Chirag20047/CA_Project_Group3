@@ -257,7 +257,7 @@ class Xecute:
         if len(byPassX_X) != 0:
             if signals[2] == byPassX_X[0]:
                 val1 = byPassX_X[1]
-            else:
+            elif signals[3] == byPassX_X[0]:
                 val2 = byPassX_X[1]
 
         self.decodeSignals = signals
@@ -278,7 +278,7 @@ class Xecute:
         if len(byPassX_X) != 0:
             if signals[2] == byPassX_X[0]:
                 val1 = byPassX_X[1]
-            else:
+            elif signals[3] == byPassX_X[0]:
                 val2 = byPassX_X[1]
         self.decodeSignals = signals
         # print("sub", CpuObject.registers)
@@ -297,7 +297,7 @@ class Xecute:
         if len(byPassX_X) != 0:
             if signals[2] == byPassX_X[0]:
                 val1 = byPassX_X[1]
-            else:
+            elif signals[3] == byPassX_X[0]:
                 val2 = byPassX_X[1]
         self.decodeSignals = signals
         self.result = val1 & val2
@@ -314,7 +314,7 @@ class Xecute:
         if len(byPassX_X) != 0:
             if signals[2] == byPassX_X[0]:
                 val1 = byPassX_X[1]
-            else:
+            elif signals[3] == byPassX_X[0] :
                 val2 = byPassX_X[1]
         self.decodeSignals = signals
         self.result = val1 | val2
@@ -343,7 +343,7 @@ class Xecute:
         if len(byPassX_X) != 0:
             if signals[2] == byPassX_X[0]:
                 val1 = byPassX_X[1]
-            else:
+            elif signals[3] == byPassX_X[0]:
                 val2 = byPassX_X[1]
         self.decodeSignals = signals
         self.result = val1 << val2
@@ -360,7 +360,7 @@ class Xecute:
         if len(byPassX_X) != 0:
             if signals[2] == byPassX_X[0]:
                 val1 = byPassX_X[1]
-            else:
+            elif signals[3] == byPassX_X[0]:
                 val2 = byPassX_X[1]
         self.result = val1 >> val2
         self.decodeSignals = signals
@@ -388,9 +388,9 @@ class Xecute:
             val2 = CpuObject.registers[signals[2] - 1]
         # Checking for bypassing values
         if len(byPassX_X) != 0:
-            if signals[2] == byPassX_X[0]:
+            if signals[1] == byPassX_X[0]:
                 val1 = byPassX_X[1]
-            else:
+            elif signals[2] == byPassX_X[0]:
                 val2 = byPassX_X[1]
         self.result = val1 == val2
 
@@ -496,7 +496,7 @@ def main():
     # for i in range(20):
     i = -1
     # Declaring stalling flag and delay by the user.
-    x = 1   # No Delay case.
+    x = 1   # Stalling for 1 cycle for RAW type (ld R1 -> read R1 in next instruction)
     stalling_flag = False
     while True:
         # check = False  # To check whether current clock cycle is needed or not for the program
@@ -505,7 +505,7 @@ def main():
         # print(i, memStage.decodeSignals, memStage.result)
         # Step 1 :Write Back Stage
         if len(memStage.decodeSignals) != 0:
-            # print(i, memStage.decodeSignals)
+            print(i, memStage.decodeSignals, memStage.result)
             # print(memStage.decodeSignals)
             if memStage.decodeSignals[0] == 'loadnoc':
                 cpuObject.specialRegisters[
@@ -529,6 +529,8 @@ def main():
             if execute.decodeSignals[0] not in ["sw", 'lw']:
                 # Not a memory operation
                 memStage.storeSignals(execute.decodeSignals, execute.result)
+                # if i == 10:
+                #     print(execute.result)
             else:
                 # Given is a memory operation
                 if execute.decodeSignals[0] == "lw":
@@ -562,7 +564,7 @@ def main():
             stalling_RAW_M_X = []
             # print(temp, memStage.decodeSignals)
             if temp in X_X_list or temp == 'beq':
-                if stalling_flag is True and x == 0:
+                if stalling_flag is True and x <= 0:
                     stalling_flag = False
                 if stalling_flag is True and x > 0:
                     # WE HAVE TO STALL FURTHER.
@@ -594,6 +596,8 @@ def main():
 
             # print(i, decode.result)
             if temp == "add":
+                # if i == 9:
+                #     print(bypassed_value)
                 execute.Add(decode.result, cpuObject, bypassed_value)
             elif temp == "addi":
                 execute.AddImm(decode.result, cpuObject, bypassed_value)
@@ -671,7 +675,6 @@ if __name__ == '__main__':
     main()
 
 '''
-1) Chirag : Stalling Debugging
-2) Memory State of CPU &  Graphs
+2) Memory State of CPU --> [Register File, ] &  Graphs
 3) User Input(x:delay) 
 '''
