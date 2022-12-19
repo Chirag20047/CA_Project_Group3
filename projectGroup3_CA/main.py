@@ -102,7 +102,7 @@ class InstructionMemory:
 class DataMemory:
     def __init__(self):  # Constructor
         self.memory = dict()  # Initializing the Dictionary
-        self.data_memory_delay = 0
+        self.data_mem_delay = 0
 
     def initializeMemory(self):  # Initializing Memory with all 0
         initialValue = 0  # initial Value of each of the memory locations
@@ -564,8 +564,6 @@ def main():
     cpuObject = CPU()
     instMem = InstructionMemory()
     dataMem = DataMemory()
-    # Taking total
-    total_mem_cycles = dataMem.data_memory_delay + 1
     fetch = Fetch()
     decode = Decode()
     execute = Xecute()
@@ -600,11 +598,11 @@ def main():
     # for i in range(20):
     i = -1
     # Declaring stalling flag and delay by the user.
-    x = 1   # Stalling for 1 cycle for RAW type (ld R1 -> read R1 in next instruction)
+    x = -1 # Stalling for 1 cycle for RAW type (ld R1 -> read R1 in next instruction)
+    y = -1
+    mem_delay_flag = False
     stalling_flag = False
     branch_flag = False
-    mem_delay_flag = False
-    y = -1
     new_program_counter = -1
     # Creating a list for pipeline instruction.
     lis = [-1]*5
@@ -627,7 +625,7 @@ def main():
                 cpuObject.specialRegisters[16400] = 1
 
             elif memStage.decodeSignals[0] != 'sw' and memStage.decodeSignals[
-                0] != 'beq':  # Given instruction n ot a memory instruction
+                0] != 'beq':  # Given instruction not a memory instruction
                 # print(memStage.decodeSignals, .result , i)
                 write_back.writeRegister(memStage.decodeSignals, memStage.result, cpuObject)
                 memStage.mem = False
@@ -639,7 +637,7 @@ def main():
         # print(i, execute.decodeSignals, execute.result)
         signals_for_execute = []
         if len(execute.decodeSignals) != 0:
-            if mem_delay_flag and y > 0 :
+            if mem_delay_flag is True and y > 0 :
                 # Case 1 : The current lw/sw instruction have to stall further.
                 # y : represents the delay of cycles to be taken further.
                 y = y - 1
@@ -648,10 +646,11 @@ def main():
                 # Writing the log file.
                 PrintPartialCpuState(cpuObject, output, True, lis, instMem)
                 # Updating the data memory access list.
-                dataMemoryAccess.append(dataMemoryAccess[len(dataMemoryAccess)-1])
+                dataMemoryAccess.append(dataMemoryAccess[len(dataMemoryAccess) - 1])
                 dataCycle.append(i)
+                if stalling_flag :
+                    x = x - 1
                 continue
-
             elif mem_delay_flag and y == 0:
                 # Resetting the variables y and flag to normal conditions.
                 y = -1
@@ -663,6 +662,8 @@ def main():
                 # Updating the data memory access list.
                 dataMemoryAccess.append(dataMemoryAccess[len(dataMemoryAccess) - 1])
                 dataCycle.append(i)
+                if stalling_flag :
+                    x = x - 1
                 continue
             else:
                 memStage.MemoryinstructionNumber = execute.XecuteinstructionNumber
@@ -674,11 +675,9 @@ def main():
                     # if i == 10:
                     #     print(execute.result)
                 else:
-                    # Given is a memory operation
-                    # Check if the given instruction is of type lw/sw
-                    if execute.decodeSignals[0] in ['lw', 'sw']:
-                        mem_delay_flag = True
-                        y = dataMem.data_memory_delay - 1
+                    # Given is a memory operation of type lw or sw.
+                    mem_delay_flag = True
+                    y = dataMem.data_memory_delay - 1
                     if execute.decodeSignals[0] == "lw":
                         # print(cpuObject.program_counter, execute.decodeSignals)
                         memStage.loadWord(execute.decodeSignals, dataMem.memory, cpuObject)
@@ -690,7 +689,6 @@ def main():
                         dataMemoryAccess.append(
                             cpuObject.registers[memStage.decodeSignals[1] - 1] + memStage.decodeSignals[3])
                         dataCycle.append(i)
-
                 execute.decodeSignals = []
         else:
             lis[3] = -1
@@ -723,8 +721,8 @@ def main():
             if temp in X_X_list or temp == 'beq':
                 if stalling_flag is True and x <= 0:
                     stalling_flag = False
-                    x = 1
-                if stalling_flag is True and x > 0:
+                    x = -1
+                elif stalling_flag is True and x > 0:
                     # WE HAVE TO STALL FURTHER.
                     stallingCycle.append(i)
                     x = x - 1
@@ -737,14 +735,14 @@ def main():
                         instructionMemoryAccess.append(instructionMemoryAccess[len(instructionMemoryAccess)-1])
                         instructionCycle.append(i)
                     continue
-                elif len(memStage.decodeSignals) != 0 and memStage.decodeSignals[0] == 'lw':
+                elif stalling_flag is False and len(memStage.decodeSignals) != 0 and memStage.decodeSignals[0] == 'lw':
                     if decode.result[0] == 'beq':
                         registers_to_be_read = [decode.result[1], decode.result[2]]
                         if memStage.decodeSignals[1] in registers_to_be_read:
                             stalling_flag = True
                             # Cycle delaying started (1st cycle counted for current cycle).
                             stallingCycle.append(i)
-                            x = x - 1
+                            x = dataMem.data_memory_delay
                             execute.XecuteinstructionNumber = -1
                             lis[2] = -1
                             PrintPartialCpuState(cpuObject, output, True, lis, instMem)
@@ -764,7 +762,7 @@ def main():
                             # Cycle delaying started (1st cycle counted for current cycle).
                             execute.XecuteinstructionNumber = -1
                             lis[2] = -1
-                            x = x - 1
+                            x = dataMem.data_memory_delay
                             PrintPartialCpuState(cpuObject, output, True, lis, instMem)
                             execute.decodeSignals = []
                             # Updating the Instruction Memory access.
@@ -876,7 +874,7 @@ def main():
                 continue  # Move to a new cycle
         # if not check:  # Checking whether some work was done or not
         #     break
-        # print("3\n"), 
+        # print("3\n"),
         PrintPartialCpuState(cpuObject, output, False, lis, instMem)
         if fetch.instruction == '':
             temporary = temporary - 1
@@ -901,5 +899,6 @@ if __name__ == '__main__':
     main()
 
 '''
-1) User Input(x:delay) : Data Memory and Instruction Memory. 
+2) Memory State of CPU ==> Graphs
+3) User Input(x:delay) 
 '''
