@@ -513,7 +513,7 @@ def instGraph(types):
     m_inst = types[1]
     x = np.array(["Register Type Instructions", "Memory Type Instructions"])
     y = np.array([r_inst,m_inst])
-    plt.title("Instruction access graph")
+    plt.title("Types of Instruction plot.")
     plt.xlabel("Instruction type")
     plt.ylabel("Number of Instructions")
     plt.bar(x,y)
