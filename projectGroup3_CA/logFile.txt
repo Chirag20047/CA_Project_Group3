@@ -72,7 +72,7 @@ State of Register File at Clock Cycle = 7:
 [3, 3, 3, 6, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 Printing Special Register File: 
 {16384: 0, 16388: 0, 16392: 0, 16396: 0, 16400: 0}
-Fetch Stage: 01000000001000011000000010110011
+Fetch Stage: 00000000001000011110001010110011
 Decode Stage: 01000000001000011000000010110011
 Xecute Stage: 00000000001000001000000111100011
 Memory Stage: 00000000010000101010001010100011
@@ -84,7 +84,7 @@ Printing Special Register File:
 {16384: 0, 16388: 0, 16392: 0, 16396: 0, 16400: 0}
 Fetch Stage: 00000000001000011001001000110011
 Decode Stage: Idle
-Xecute Stage: 01000000001000011000000010110011
+Xecute Stage: Idle
 Memory Stage: 00000000001000001000000111100011
 WriteBack Stage: 00000000010000101010001010100011
 
@@ -95,21 +95,21 @@ Printing Special Register File:
 Fetch Stage: 00000000010100101010000010000011
 Decode Stage: 00000000001000011001001000110011
 Xecute Stage: Idle
-Memory Stage: 01000000001000011000000010110011
+Memory Stage: Idle
 WriteBack Stage: 00000000001000001000000111100011
 
 State of Register File at Clock Cycle = 10:
-[0, 3, 3, 6, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+[3, 3, 3, 6, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 Printing Special Register File: 
 {16384: 0, 16388: 0, 16392: 0, 16396: 0, 16400: 0}
 Fetch Stage: 00000000001000011110000010110011
 Decode Stage: 00000000010100101010000010000011
 Xecute Stage: 00000000001000011001001000110011
 Memory Stage: Idle
-WriteBack Stage: 01000000001000011000000010110011
+WriteBack Stage: Idle
 
 State of Register File at Clock Cycle = 11:
-[0, 3, 3, 6, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+[3, 3, 3, 6, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 Printing Special Register File: 
 {16384: 0, 16388: 0, 16392: 0, 16396: 0, 16400: 0}
 Fetch Stage: 01000000001000011000000100110011
@@ -119,7 +119,7 @@ Memory Stage: 00000000001000011001001000110011
 WriteBack Stage: Idle
 
 State of Register File at Clock Cycle = 12:
-[0, 3, 3, 24, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+[3, 3, 3, 24, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 Printing Special Register File: 
 {16384: 0, 16388: 0, 16392: 0, 16396: 0, 16400: 0}
 Fetch Stage: Idle

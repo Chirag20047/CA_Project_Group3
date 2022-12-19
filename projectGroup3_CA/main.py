@@ -554,6 +554,7 @@ def main():
     x = 1   # Stalling for 1 cycle for RAW type (ld R1 -> read R1 in next instruction)
     stalling_flag = False
     branch_flag = False
+    new_program_counter = -1
     # Creating a list for pipeline instruction.
     lis = [-1]*5
     while True:
@@ -602,6 +603,14 @@ def main():
                     memStage.loadWord(execute.decodeSignals, dataMem.memory, cpuObject)
                 elif execute.decodeSignals[0] == "sw":
                     memStage.storeWord(execute.decodeSignals, dataMem.memory, cpuObject)
+                # sw instruction : M[signals[1] + signals[3]] access
+            #     Updating the data memory lists.
+                if memStage.decodeSignals[0] == 'sw':
+                    dataMemoryAccess.append(cpuObject.registers[memStage.decodeSignals[1]-1] + memStage.decodeSignals[3])
+                    dataCycle.append(i)
+                if memStage.decodeSignals[0] == 'lw':
+                    dataMemoryAccess.append(cpuObject.registers[memStage.decodeSignals[2]-1] + memStage.decodeSignals[3])
+                    dataCycle.append(i)
             execute.decodeSignals = []
         else:
             lis[3] = -1
@@ -642,6 +651,10 @@ def main():
                     lis[2] = -1
                     PrintPartialCpuState(cpuObject, output, True, lis, instMem)
                     # print("hi")
+                    # Updating the Instruction Memory access.
+                    if instructionCycle[len(instructionCycle)-1] == i-1:
+                        instructionMemoryAccess.append(instructionMemoryAccess[len(instructionMemoryAccess-1)])
+                        instructionCycle.append(i)
                     continue
                 elif len(memStage.decodeSignals) != 0 and memStage.decodeSignals[0] == 'lw':
                     if decode.result[0] == 'beq':
@@ -654,6 +667,11 @@ def main():
                             lis[2] = -1
                             PrintPartialCpuState(cpuObject, output, True, lis, instMem)
                             execute.decodeSignals = []
+                            # Updating the Instruction Memory access.
+                            if instructionCycle[len(instructionCycle) - 1] == i - 1:
+                                instructionMemoryAccess.append(
+                                    instructionMemoryAccess[len(instructionMemoryAccess - 1)])
+                                instructionCycle.append(i)
                             # print("hi")
                             continue
                     elif decode.result[0] in X_X_list:
@@ -666,6 +684,11 @@ def main():
                             x = x - 1
                             PrintPartialCpuState(cpuObject, output, True, lis, instMem)
                             execute.decodeSignals = []
+                            # Updating the Instruction Memory access.
+                            if instructionCycle[len(instructionCycle) - 1] == i - 1:
+                                instructionMemoryAccess.append(
+                                    instructionMemoryAccess[len(instructionMemoryAccess - 1)])
+                                instructionCycle.append(i)
                             # print("hi")
                             continue
             execute.XecuteinstructionNumber = decode.DecodeinstructionNumber
@@ -703,9 +726,8 @@ def main():
                     branch_flag = True
                     effective_offset = decode.result[3] - 2
                     # print("Current Program Counter",BTD(cpuObject.program_counter))
-                    cpuObject.program_counter = cpuObject.program_counter + effective_offset
+                    new_program_counter = cpuObject.program_counter + effective_offset
                     # print("Updated Program Counter",BTD(cpuObject.program_counter))
-                    totalInstructions = cpuObject.program_counter
                     decode.result = []
                     # execute.decodeSignals = []
 
@@ -727,20 +749,10 @@ def main():
             lis[1] = decode.DecodeinstructionNumber
             # print(i, decode.result)
             fetch.instruction = ''
-            if branch_flag :
-                PrintPartialCpuState(cpuObject, output, False, lis, instMem)
-                # Resetting the flag to False.
-                branch_flag = False
-                continue  # Move to a new cycle
-
         else :
             lis[1] = -1
             # Handling edge case for branch instruction.
-            if branch_flag:
-                PrintPartialCpuState(cpuObject, output, False, lis, instMem)
-                # Resetting the flag to False.
-                branch_flag = False
-                continue  # Move to a new cycle
+
 
         # Step 5 :
         # if not fetch.busy:
@@ -750,11 +762,35 @@ def main():
             totalInstructions = totalInstructions + 1
             # print(i, BTD(cpuObject.program_counter))
             fetch.FetchInstruction(instMem.instructions[cpuObject.program_counter])
+            # Updating the lists for instruction memory access.
+            instructionMemoryAccess.append(cpuObject.program_counter)
+            instructionCycle.append(i)
             fetch.FetchinstructionNumber = cpuObject.program_counter
             lis[0] = fetch.FetchinstructionNumber
-            cpuObject.program_counter = cpuObject.program_counter + 1  # updating the program counter by 1
+            if branch_flag :
+                PrintPartialCpuState(cpuObject, output, False, lis, instMem)
+                decode.result = []
+                fetch.instruction = ''
+                # Resetting the flag to False.
+                branch_flag = False
+                cpuObject.program_counter = new_program_counter
+                new_program_counter = -1
+                totalInstructions = cpuObject.program_counter
+                continue  # Move to a new cycle
+            else:
+                cpuObject.program_counter = cpuObject.program_counter + 1  # updating the program counter by 1
         else:
             lis[0] = -1
+            if branch_flag :
+                PrintPartialCpuState(cpuObject, output, False, lis, instMem)
+                decode.result = []
+                fetch.instruction = ''
+                # Resetting the flag to False.
+                branch_flag = False
+                cpuObject.program_counter = new_program_counter
+                new_program_counter = -1
+                totalInstructions = cpuObject.program_counter
+                continue  # Move to a new cycle
         # if not check:  # Checking whether some work was done or not
         #     break
         # print("3\n"), 
