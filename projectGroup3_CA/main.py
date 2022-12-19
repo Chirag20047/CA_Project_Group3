@@ -474,9 +474,9 @@ def PrintPartialCpuState(cpuObject, writeFile, stallStatus, lis , instructionMem
     if stallStatus == True:
         writeFile.write("CPU is Stalled!\n")
     # Writing the instruction present in each stage.
-    answer = ['-1']*5
+    answer = ['Idle']*5
     for i in range(5):
-        if(lis[i]!=-1):
+        if lis[i] != -1:
             answer[i] = instructionMem.instructions[lis[i]]
     writeFile.write("Fetch Stage: ")
     writeFile.write(answer[0])
@@ -488,9 +488,26 @@ def PrintPartialCpuState(cpuObject, writeFile, stallStatus, lis , instructionMem
     writeFile.write(answer[3])
     writeFile.write("\nWriteBack Stage: ")
     writeFile.write(answer[4])
-    writeFile.write("\n")
+    writeFile.write("\n\n")
     cpuObject.clock.updateCounter(1)
     return
+
+
+def getTotalInstructionsOfGivenType(instObj, decodeObj):
+    ans = [0, 0]
+    memoryType = ['lw', 'sw', 'loadnoc', 'storenoc']
+    for i in range(len(instObj.instructions)):
+        decodeObj.DecodeInstruction(instObj.instructions[i])
+        if decodeObj.result in memoryType:
+            ans[1] += 1
+        else:
+            ans[0] += 1
+    decodeObj.result = []
+
+
+def plotTypeOfInstructions(typeLis):
+    # This method is used to plot the graph for number of instructions of each type.
+    pass
 
 
 def main():
@@ -512,8 +529,21 @@ def main():
     instMem.loadProgram(binary)
     # print(instMem.instructions)
     dataMem.initializeMemory()
-    # print(instMem.instructions[BTD(cpuObject.program_counter)])
-    # return
+
+    # Creating a list for storing the number of a given type of instruction.
+    # index 0 : register-type instructions & index1: memory-type instructions.
+    # Invoking the method to count the result
+    typeOfInstruction = getTotalInstructionsOfGivenType(instMem, decode)
+    plotTypeOfInstructions(typeOfInstruction)
+
+    # Creating a list for storing the instruction-memory access pattern.
+    instructionMemoryAccess = []
+    instructionCycle = []
+
+    # Creating a list for storing the data-memory access pattern.
+    dataMemoryAccess = []
+    dataCycle = []
+
     # Main Logic of the code
     # while True:
     totalInstructions = 0
@@ -523,6 +553,7 @@ def main():
     # Declaring stalling flag and delay by the user.
     x = 1   # Stalling for 1 cycle for RAW type (ld R1 -> read R1 in next instruction)
     stalling_flag = False
+    branch_flag = False
     # Creating a list for pipeline instruction.
     lis = [-1]*5
     while True:
@@ -669,16 +700,15 @@ def main():
                 execute.BranchIfEqual(decode.result, cpuObject, bypassed_value)
                 # print(execute.result)
                 if execute.result:
+                    branch_flag = True
                     effective_offset = decode.result[3] - 2
                     # print("Current Program Counter",BTD(cpuObject.program_counter))
                     cpuObject.program_counter = cpuObject.program_counter + effective_offset
                     # print("Updated Program Counter",BTD(cpuObject.program_counter))
-                    fetch.instruction = ""
                     totalInstructions = cpuObject.program_counter
                     decode.result = []
                     # execute.decodeSignals = []
-                    PrintPartialCpuState(cpuObject, output, False, lis, instMem)
-                    continue  # Move to a new cycle
+
 
             elif temp == "storenoc":
                 execute.storeNOC(decode.result, cpuObject)
@@ -697,8 +727,20 @@ def main():
             lis[1] = decode.DecodeinstructionNumber
             # print(i, decode.result)
             fetch.instruction = ''
+            if branch_flag :
+                PrintPartialCpuState(cpuObject, output, False, lis, instMem)
+                # Resetting the flag to False.
+                branch_flag = False
+                continue  # Move to a new cycle
+
         else :
             lis[1] = -1
+            # Handling edge case for branch instruction.
+            if branch_flag:
+                PrintPartialCpuState(cpuObject, output, False, lis, instMem)
+                # Resetting the flag to False.
+                branch_flag = False
+                continue  # Move to a new cycle
 
         # Step 5 :
         # if not fetch.busy:
@@ -734,6 +776,6 @@ if __name__ == '__main__':
     main()
 
 '''
-2) Memory State of CPU ==> [ Register File ] & Graphs
+2) Memory State of CPU ==> Graphs
 3) User Input(x:delay) 
 '''
