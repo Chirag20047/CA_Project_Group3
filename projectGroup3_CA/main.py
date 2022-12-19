@@ -1,5 +1,7 @@
 import random
 import random as rand
+import numpy as np
+import matplotlib.pyplot as plt
 
 
 def BTD(binary):  # Converts a given binary string (32 bits) to decimal integer (base 10)
@@ -498,16 +500,58 @@ def getTotalInstructionsOfGivenType(instObj, decodeObj):
     memoryType = ['lw', 'sw', 'loadnoc', 'storenoc']
     for i in range(len(instObj.instructions)):
         decodeObj.DecodeInstruction(instObj.instructions[i])
-        if decodeObj.result in memoryType:
+        if decodeObj.result[0] in memoryType:
             ans[1] += 1
         else:
             ans[0] += 1
     decodeObj.result = []
+    return ans
 
 
-def plotTypeOfInstructions(typeLis):
-    # This method is used to plot the graph for number of instructions of each type.
-    pass
+def instGraph(types):
+    r_inst = types[0]
+    m_inst = types[1]
+    x = np.array(["Register Type Instructions", "Memory Type Instructions"])
+    y = np.array([r_inst,m_inst])
+    plt.title("Instruction access graph")
+    plt.xlabel("Instruction type")
+    plt.ylabel("Number of Instructions")
+    plt.bar(x,y)
+    plt.show()
+
+def DatamemAccessGraph(cycle, location):
+    xAxis = np.array(cycle)
+    yAxis = np.array(location)
+    plt.scatter(xAxis, yAxis)
+    plt.title("Data Memory Access Pattern")
+    plt.xlabel("Cycle Number")
+    plt.ylabel("Memory Address")
+    plt.show()
+
+def InstmemAccessGraph(cycle, location):
+    xAxis = np.array(cycle)
+    yAxis = np.array(location)
+    plt.scatter(xAxis, yAxis)
+    plt.title("Instruction Memory Access Pattern")
+    plt.xlabel("Cycle Number")
+    plt.ylabel("Memory Address")
+    plt.show()
+
+
+def stallGraph(cycle):
+    x_axis = []
+    y_axis = []
+    if len(cycle) > 0 :
+        temp = [0]*(cycle[len(cycle)-1] + 1)
+        for i in cycle:
+            temp[i] = 1
+        x_axis = list(range(0,cycle[len(cycle)-1]+1))
+        y_axis = temp
+    plt.scatter(x_axis, y_axis)
+    plt.title("Plot displaying the cycles of CPU Stalling.")
+    plt.xlabel("Cycle Number: ")
+    plt.ylabel("Stalling(1/0)")
+    plt.show()
 
 
 def main():
@@ -532,9 +576,8 @@ def main():
 
     # Creating a list for storing the number of a given type of instruction.
     # index 0 : register-type instructions & index1: memory-type instructions.
-    # Invoking the method to count the result
+    # Invoking the method to count the result.
     typeOfInstruction = getTotalInstructionsOfGivenType(instMem, decode)
-    plotTypeOfInstructions(typeOfInstruction)
 
     # Creating a list for storing the instruction-memory access pattern.
     instructionMemoryAccess = []
@@ -543,6 +586,9 @@ def main():
     # Creating a list for storing the data-memory access pattern.
     dataMemoryAccess = []
     dataCycle = []
+
+    # Creating a list for storing the cycles against the stalling.
+    stallingCycle = []
 
     # Main Logic of the code
     # while True:
@@ -646,14 +692,15 @@ def main():
                     x = 1
                 if stalling_flag is True and x > 0:
                     # WE HAVE TO STALL FURTHER.
+                    stallingCycle.append(i)
                     x = x - 1
                     execute.XecuteinstructionNumber = -1
                     lis[2] = -1
                     PrintPartialCpuState(cpuObject, output, True, lis, instMem)
                     # print("hi")
                     # Updating the Instruction Memory access.
-                    if instructionCycle[len(instructionCycle)-1] == i-1:
-                        instructionMemoryAccess.append(instructionMemoryAccess[len(instructionMemoryAccess-1)])
+                    if len(instructionCycle) != 0 and instructionCycle[len(instructionCycle)-1] == i-1:
+                        instructionMemoryAccess.append(instructionMemoryAccess[len(instructionMemoryAccess)-1])
                         instructionCycle.append(i)
                     continue
                 elif len(memStage.decodeSignals) != 0 and memStage.decodeSignals[0] == 'lw':
@@ -662,15 +709,16 @@ def main():
                         if memStage.decodeSignals[1] in registers_to_be_read:
                             stalling_flag = True
                             # Cycle delaying started (1st cycle counted for current cycle).
+                            stallingCycle.append(i)
                             x = x - 1
                             execute.XecuteinstructionNumber = -1
                             lis[2] = -1
                             PrintPartialCpuState(cpuObject, output, True, lis, instMem)
                             execute.decodeSignals = []
                             # Updating the Instruction Memory access.
-                            if instructionCycle[len(instructionCycle) - 1] == i - 1:
+                            if len(instructionCycle) != 0 and instructionCycle[len(instructionCycle) - 1] == i - 1:
                                 instructionMemoryAccess.append(
-                                    instructionMemoryAccess[len(instructionMemoryAccess - 1)])
+                                    instructionMemoryAccess[len(instructionMemoryAccess) - 1])
                                 instructionCycle.append(i)
                             # print("hi")
                             continue
@@ -678,6 +726,7 @@ def main():
                         registers_to_be_read = [decode.result[2], decode.result[3]]
                         if memStage.decodeSignals[1] in registers_to_be_read:
                             stalling_flag = True
+                            stallingCycle.append(i)
                             # Cycle delaying started (1st cycle counted for current cycle).
                             execute.XecuteinstructionNumber = -1
                             lis[2] = -1
@@ -685,9 +734,9 @@ def main():
                             PrintPartialCpuState(cpuObject, output, True, lis, instMem)
                             execute.decodeSignals = []
                             # Updating the Instruction Memory access.
-                            if instructionCycle[len(instructionCycle) - 1] == i - 1:
+                            if len(instructionCycle) != 0 and instructionCycle[len(instructionCycle) - 1] == i - 1:
                                 instructionMemoryAccess.append(
-                                    instructionMemoryAccess[len(instructionMemoryAccess - 1)])
+                                    instructionMemoryAccess[len(instructionMemoryAccess) - 1])
                                 instructionCycle.append(i)
                             # print("hi")
                             continue
@@ -804,6 +853,12 @@ def main():
     output.write("\nEnd State of Memory\n")
     output.write(str(dataMem.memory))
     output.close()
+    # Plotting the graphs
+    # print(typeOfInstruction)
+    instGraph(typeOfInstruction)
+    DatamemAccessGraph(dataCycle, dataMemoryAccess)
+    InstmemAccessGraph(instructionCycle, instructionMemoryAccess)
+    stallGraph(stallingCycle)
     return
 
 
