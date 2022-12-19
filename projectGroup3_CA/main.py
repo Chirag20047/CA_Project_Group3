@@ -113,6 +113,7 @@ class Fetch:
     def __init__(self):
         self.instruction = ""
         # self.busy = False
+        self.FetchinstructionNumber = -1
         pass
 
     def FetchInstruction(self, instruction):  # Setting the instruction
@@ -124,6 +125,7 @@ class Decode:
     def __init__(self):
         # self.busy = False
         self.type = None
+        self.DecodeinstructionNumber = -1
         self.result = list()
         pass
 
@@ -233,6 +235,8 @@ class Xecute:
         # self.busy = False  # Used for checking stalling logics
         self.result = None  # value of register if needs to be udpated
         self.decodeSignals = list()  # storing decode signals for passing it to further stages
+        self.XecuteinstructionNumber = -1
+
 
     def loadNOC(self, signals, CpuObject):
         # signals = [type, rs2, rs1 , imm]
@@ -400,6 +404,7 @@ class Memory:
         # self.busy = False
         self.mem = False  # False --> no memory operation was there --> write back has to do its work
         self.decodeSignals = list()
+        self.MemoryinstructionNumber = -1
         self.result = None
 
     def storeSignals(self, signals, res):
@@ -441,6 +446,7 @@ class Memory:
 
 class WriteBack:
     def __init__(self):
+        self.WriteBackinstructionNumber = -1
         # self.busy = False  # used for stalling logic if required
         return
 
@@ -455,7 +461,7 @@ class WriteBack:
         return
 
 
-def PrintPartialCpuState(cpuObject, writeFile):
+def PrintPartialCpuState(cpuObject, writeFile, stallStatus, lis , instructionMem):
     writeFile.write(str('State of Register File at Clock Cycle = ' + str(cpuObject.clock.getCounter()) + ':'))
     writeFile.write("\n")
     output = cpuObject.registers
@@ -463,6 +469,25 @@ def PrintPartialCpuState(cpuObject, writeFile):
     writeFile.write("\n")
     writeFile.write("Printing Special Register File: \n")
     writeFile.write(str(cpuObject.specialRegisters))
+    writeFile.write("\n")
+    # In case of CPU stalling -> Writing to the file.
+    if stallStatus == True:
+        writeFile.write("CPU is Stalled!\n")
+    # Writing the instruction present in each stage.
+    answer = ['-1']*5
+    for i in range(5):
+        if(lis[i]!=-1):
+            answer[i] = instructionMem.instructions[lis[i]]
+    writeFile.write("Fetch Stage: ")
+    writeFile.write(answer[0])
+    writeFile.write("\nDecode Stage: ")
+    writeFile.write(answer[1])
+    writeFile.write("\nXecute Stage: ")
+    writeFile.write(answer[2])
+    writeFile.write("\nMemory Stage: ")
+    writeFile.write(answer[3])
+    writeFile.write("\nWriteBack Stage: ")
+    writeFile.write(answer[4])
     writeFile.write("\n")
     cpuObject.clock.updateCounter(1)
     return
@@ -498,6 +523,8 @@ def main():
     # Declaring stalling flag and delay by the user.
     x = 1   # Stalling for 1 cycle for RAW type (ld R1 -> read R1 in next instruction)
     stalling_flag = False
+    # Creating a list for pipeline instruction.
+    lis = [-1]*5
     while True:
         # check = False  # To check whether current clock cycle is needed or not for the program
         # print(decode.result)
@@ -507,6 +534,8 @@ def main():
         if len(memStage.decodeSignals) != 0:
             # print(i, memStage.decodeSignals, memStage.result)
             # print(memStage.decodeSignals)
+            write_back.WriteBackinstructionNumber = memStage.MemoryinstructionNumber
+            lis[4] = write_back.WriteBackinstructionNumber
             if memStage.decodeSignals[0] == 'loadnoc':
                 cpuObject.specialRegisters[
                     cpuObject.registers[memStage.decodeSignals[2] - 1] + memStage.decodeSignals[3]] = memStage.result
@@ -520,11 +549,15 @@ def main():
                 write_back.writeRegister(memStage.decodeSignals, memStage.result, cpuObject)
                 memStage.mem = False
             memStage.decodeSignals = []
+        else:
+            lis[4] = -1
 
         # Step 2 : Memory Stage :
         # print(i, execute.decodeSignals, execute.result)
         signals_for_execute = []
         if len(execute.decodeSignals) != 0:
+            memStage.MemoryinstructionNumber = execute.XecuteinstructionNumber
+            lis[3] = memStage.MemoryinstructionNumber
             signals_for_execute = execute.decodeSignals
             if execute.decodeSignals[0] not in ["sw", 'lw']:
                 # Not a memory operation
@@ -539,6 +572,8 @@ def main():
                 elif execute.decodeSignals[0] == "sw":
                     memStage.storeWord(execute.decodeSignals, dataMem.memory, cpuObject)
             execute.decodeSignals = []
+        else:
+            lis[3] = -1
 
         # Step 3 : Execute Stage
         if len(decode.result) != 0:
@@ -568,10 +603,13 @@ def main():
             if temp in X_X_list or temp == 'beq':
                 if stalling_flag is True and x <= 0:
                     stalling_flag = False
+                    x = 1
                 if stalling_flag is True and x > 0:
                     # WE HAVE TO STALL FURTHER.
                     x = x - 1
-                    PrintPartialCpuState(cpuObject, output)
+                    execute.XecuteinstructionNumber = -1
+                    lis[2] = -1
+                    PrintPartialCpuState(cpuObject, output, True, lis, instMem)
                     # print("hi")
                     continue
                 elif len(memStage.decodeSignals) != 0 and memStage.decodeSignals[0] == 'lw':
@@ -581,7 +619,9 @@ def main():
                             stalling_flag = True
                             # Cycle delaying started (1st cycle counted for current cycle).
                             x = x - 1
-                            PrintPartialCpuState(cpuObject, output)
+                            execute.XecuteinstructionNumber = -1
+                            lis[2] = -1
+                            PrintPartialCpuState(cpuObject, output, True, lis, instMem)
                             execute.decodeSignals = []
                             # print("hi")
                             continue
@@ -590,12 +630,15 @@ def main():
                         if memStage.decodeSignals[1] in registers_to_be_read:
                             stalling_flag = True
                             # Cycle delaying started (1st cycle counted for current cycle).
+                            execute.XecuteinstructionNumber = -1
+                            lis[2] = -1
                             x = x - 1
-                            PrintPartialCpuState(cpuObject, output)
+                            PrintPartialCpuState(cpuObject, output, True, lis, instMem)
                             execute.decodeSignals = []
                             # print("hi")
                             continue
-
+            execute.XecuteinstructionNumber = decode.DecodeinstructionNumber
+            lis[2] = execute.XecuteinstructionNumber
             # print(i, decode.result)
             if temp == "add":
                 # if i == 9:
@@ -634,7 +677,7 @@ def main():
                     totalInstructions = cpuObject.program_counter
                     decode.result = []
                     # execute.decodeSignals = []
-                    PrintPartialCpuState(cpuObject, output)
+                    PrintPartialCpuState(cpuObject, output, False, lis, instMem)
                     continue  # Move to a new cycle
 
             elif temp == "storenoc":
@@ -643,13 +686,19 @@ def main():
             elif temp == "loadnoc":
                 execute.loadNOC(decode.result, cpuObject)
             decode.result = []
+        else:
+            lis[2] = -1
 
         # Step 4 : Decode :
         # print(i, fetch.instruction)
         if len(fetch.instruction) != 0:
             decode.DecodeInstruction(fetch.instruction)
+            decode.DecodeinstructionNumber = fetch.FetchinstructionNumber
+            lis[1] = decode.DecodeinstructionNumber
             # print(i, decode.result)
             fetch.instruction = ''
+        else :
+            lis[1] = -1
 
         # Step 5 :
         # if not fetch.busy:
@@ -659,11 +708,15 @@ def main():
             totalInstructions = totalInstructions + 1
             # print(i, BTD(cpuObject.program_counter))
             fetch.FetchInstruction(instMem.instructions[cpuObject.program_counter])
+            fetch.FetchinstructionNumber = cpuObject.program_counter
+            lis[0] = fetch.FetchinstructionNumber
             cpuObject.program_counter = cpuObject.program_counter + 1  # updating the program counter by 1
+        else:
+            lis[0] = -1
         # if not check:  # Checking whether some work was done or not
         #     break
-        # print("3\n")
-        PrintPartialCpuState(cpuObject, output)
+        # print("3\n"), 
+        PrintPartialCpuState(cpuObject, output, False, lis, instMem)
         if fetch.instruction == '':
             temporary = temporary - 1
             if temporary == 0:
