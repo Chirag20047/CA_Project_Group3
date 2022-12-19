@@ -102,10 +102,11 @@ class InstructionMemory:
 class DataMemory:
     def __init__(self):  # Constructor
         self.memory = dict()  # Initializing the Dictionary
+        self.data_memory_delay = 0
 
     def initializeMemory(self):  # Initializing Memory with all 0
         initialValue = 0  # initial Value of each of the memory locations
-        # data_memory_delay = int(input("Enter the delay(in cycles) for data memory: "))
+        self.data_memory_delay = int(input("Enter the delay(in cycles) for data memory: "))
         for i in range(1000):  # Number of different memory locations : 1000 (starting from 0)
             addr = i  # address of the memory location
             self.memory[addr] = initialValue
@@ -563,6 +564,8 @@ def main():
     cpuObject = CPU()
     instMem = InstructionMemory()
     dataMem = DataMemory()
+    # Taking total
+    total_mem_cycles = dataMem.data_memory_delay + 1
     fetch = Fetch()
     decode = Decode()
     execute = Xecute()
@@ -600,6 +603,8 @@ def main():
     x = 1   # Stalling for 1 cycle for RAW type (ld R1 -> read R1 in next instruction)
     stalling_flag = False
     branch_flag = False
+    mem_delay_flag = False
+    y = -1
     new_program_counter = -1
     # Creating a list for pipeline instruction.
     lis = [-1]*5
@@ -609,7 +614,7 @@ def main():
         i = i + 1
         # print(i, memStage.decodeSignals, memStage.result)
         # Step 1 :Write Back Stage
-        if len(memStage.decodeSignals) != 0:
+        if mem_delay_flag is False and len(memStage.decodeSignals) != 0:
             # print(i, memStage.decodeSignals, memStage.result)
             # print(memStage.decodeSignals)
             write_back.WriteBackinstructionNumber = memStage.MemoryinstructionNumber
@@ -622,7 +627,7 @@ def main():
                 cpuObject.specialRegisters[16400] = 1
 
             elif memStage.decodeSignals[0] != 'sw' and memStage.decodeSignals[
-                0] != 'beq':  # Given instruction not a memory instruction
+                0] != 'beq':  # Given instruction n ot a memory instruction
                 # print(memStage.decodeSignals, .result , i)
                 write_back.writeRegister(memStage.decodeSignals, memStage.result, cpuObject)
                 memStage.mem = False
@@ -634,30 +639,59 @@ def main():
         # print(i, execute.decodeSignals, execute.result)
         signals_for_execute = []
         if len(execute.decodeSignals) != 0:
-            memStage.MemoryinstructionNumber = execute.XecuteinstructionNumber
-            lis[3] = memStage.MemoryinstructionNumber
-            signals_for_execute = execute.decodeSignals
-            if execute.decodeSignals[0] not in ["sw", 'lw']:
-                # Not a memory operation
-                memStage.storeSignals(execute.decodeSignals, execute.result)
-                # if i == 10:
-                #     print(execute.result)
+            if mem_delay_flag and y > 0 :
+                # Case 1 : The current lw/sw instruction have to stall further.
+                # y : represents the delay of cycles to be taken further.
+                y = y - 1
+                # Updating the stalling cycles list.
+                stallingCycle.append(i)
+                # Writing the log file.
+                PrintPartialCpuState(cpuObject, output, True, lis, instMem)
+                # Updating the data memory access list.
+                dataMemoryAccess.append(dataMemoryAccess[len(dataMemoryAccess)-1])
+                dataCycle.append(i)
+                continue
+
+            elif mem_delay_flag and y == 0:
+                # Resetting the variables y and flag to normal conditions.
+                y = -1
+                mem_delay_flag = False
+                # since y=0 -> No further stalling.
+                stallingCycle.append(i)
+                # Writing the log file.
+                PrintPartialCpuState(cpuObject, output, True, lis, instMem)
+                # Updating the data memory access list.
+                dataMemoryAccess.append(dataMemoryAccess[len(dataMemoryAccess) - 1])
+                dataCycle.append(i)
+                continue
             else:
-                # Given is a memory operation
-                if execute.decodeSignals[0] == "lw":
-                    # print(cpuObject.program_counter, execute.decodeSignals)
-                    memStage.loadWord(execute.decodeSignals, dataMem.memory, cpuObject)
-                elif execute.decodeSignals[0] == "sw":
-                    memStage.storeWord(execute.decodeSignals, dataMem.memory, cpuObject)
-                # sw instruction : M[signals[1] + signals[3]] access
-            #     Updating the data memory lists.
-                if memStage.decodeSignals[0] == 'sw':
-                    dataMemoryAccess.append(cpuObject.registers[memStage.decodeSignals[1]-1] + memStage.decodeSignals[3])
-                    dataCycle.append(i)
-                if memStage.decodeSignals[0] == 'lw':
-                    dataMemoryAccess.append(cpuObject.registers[memStage.decodeSignals[2]-1] + memStage.decodeSignals[3])
-                    dataCycle.append(i)
-            execute.decodeSignals = []
+                memStage.MemoryinstructionNumber = execute.XecuteinstructionNumber
+                lis[3] = memStage.MemoryinstructionNumber
+                signals_for_execute = execute.decodeSignals
+                if execute.decodeSignals[0] not in ["sw", 'lw']:
+                    # Not a memory operation
+                    memStage.storeSignals(execute.decodeSignals, execute.result)
+                    # if i == 10:
+                    #     print(execute.result)
+                else:
+                    # Given is a memory operation
+                    # Check if the given instruction is of type lw/sw
+                    if execute.decodeSignals[0] in ['lw', 'sw']:
+                        mem_delay_flag = True
+                        y = dataMem.data_memory_delay - 1
+                    if execute.decodeSignals[0] == "lw":
+                        # print(cpuObject.program_counter, execute.decodeSignals)
+                        memStage.loadWord(execute.decodeSignals, dataMem.memory, cpuObject)
+                        dataMemoryAccess.append(
+                            cpuObject.registers[memStage.decodeSignals[2] - 1] + memStage.decodeSignals[3])
+                        dataCycle.append(i)
+                    elif execute.decodeSignals[0] == "sw":
+                        memStage.storeWord(execute.decodeSignals, dataMem.memory, cpuObject)
+                        dataMemoryAccess.append(
+                            cpuObject.registers[memStage.decodeSignals[1] - 1] + memStage.decodeSignals[3])
+                        dataCycle.append(i)
+
+                execute.decodeSignals = []
         else:
             lis[3] = -1
 
@@ -867,6 +901,5 @@ if __name__ == '__main__':
     main()
 
 '''
-2) Memory State of CPU ==> Graphs
-3) User Input(x:delay) 
+1) User Input(x:delay) : Data Memory and Instruction Memory. 
 '''
